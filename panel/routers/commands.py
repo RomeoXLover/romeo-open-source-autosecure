@@ -1,6 +1,7 @@
 from panel.models import RealCommandsRequest, FakeCommandRequest, RenameCommandRequest
 from panel.config import require_auth, get_config
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 import json, os, re, random, string
 
 router = APIRouter()
@@ -121,3 +122,46 @@ def delete_fake_command(name: str, user: str = Depends(require_auth)):
         json.dump(bc, f, indent=2)
 
     return {"ok": True}
+
+
+class AIUpdateRequest(BaseModel):
+    enabled: bool | None = None
+    provider: str | None = None
+    api_key: str | None = None
+    api_url: str | None = None
+    model: str | None = None
+    max_tokens: int | None = None
+    rate_limit_per_minute: int | None = None
+    allowed_commands: list | None = None
+
+
+@router.get("/api/ai")
+def get_ai_config(user: str = Depends(require_auth)):
+    cfg = json.load(open("config/config.json", "r"))
+    return {"ai": cfg.get("ai", {})}
+
+
+@router.post("/api/ai")
+def update_ai_config(body: AIUpdateRequest, user: str = Depends(require_auth)):
+    cfg = get_config()
+    ai = cfg.setdefault("ai", {})
+
+    if body.enabled is not None:
+        ai["enabled"] = body.enabled
+    if body.provider is not None:
+        ai["provider"] = body.provider
+    if body.api_key is not None:
+        ai["api_key"] = body.api_key
+    if body.api_url is not None:
+        ai["api_url"] = body.api_url
+    if body.model is not None:
+        ai["model"] = body.model
+    if body.max_tokens is not None:
+        ai["max_tokens"] = body.max_tokens
+    if body.rate_limit_per_minute is not None:
+        ai["rate_limit_per_minute"] = body.rate_limit_per_minute
+    if body.allowed_commands is not None:
+        ai["allowed_commands"] = body.allowed_commands
+
+    json.dump(cfg, open("config/config.json", "w"), indent=2)
+    return {"ok": True, "ai": ai}

@@ -19,7 +19,8 @@
       "set_channel": true,
       "sell_stats": true,
       "leaderboard": true,
-      "stats": true
+      "stats": true,
+      "ai": true
     },
     "fake": {},
     "aliases": {
@@ -37,7 +38,8 @@
       "set_channel": "set",
       "sell_stats": "stats",
       "leaderboard": "leaderboard",
-      "stats": "mcstats"
+      "stats": "mcstats",
+      "ai": "ai"
     }
   },
   "embeds": {
