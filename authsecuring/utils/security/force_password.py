@@ -10,7 +10,7 @@ import httpx
 from authsecuring.auth.initial_session import get_session
 from authsecuring.utils.proxy import close_session
 from authsecuring.utils.security.change_password import change_password_authenticated
-from authsecuring.utils.security.password_gen import generate_ms_password
+from authsecuring.utils.security.password_gen import make_ms_password
 from authsecuring.utils.security.recovery import (
     recover,
     reset_password_via_security_email_otp,

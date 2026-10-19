@@ -2,7 +2,7 @@ from authsecuring.utils.login_authenticator import login_authenticator
 from authsecuring.utils.cookies.get_livedata import livedata
 from authsecuring.utils.cookies.safe_cookies import has_cookie
 from authsecuring.utils.security.recovery import recover, verify_password_works, RecoverError
-from authsecuring.utils.security.password_gen import generate_ms_password
+from authsecuring.utils.security.password_gen import make_ms_password
 from authsecuring.utils.cookies.get_email_code import fetch_otp
 from authsecuring.utils.login_pwd import login_pwd
 from authsecuring.orch import romeo_secure
@@ -569,7 +569,7 @@ async def romeo_recover(
                 # poison later SA elevation; security-email OTP usually does not.
                 # Password is the fallback when OTP mail does not arrive (30s).
                 account = None
-                from authsecuring.utils.security.force_password import strip_unverified
+                from authsecuring.utils.security.force_password import clean_password
 
                 login_password = clean_password(password)
 
