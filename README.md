@@ -1,4 +1,4 @@
-# NexusMSA — Microsoft Account Security Toolkit
+# RomeoMSA — Microsoft Account Security Toolkit
 
 Microsoft account securing automation for Discord. Request-based, headless — no Selenium or Playwright. Built-in SMTP server, web dashboard, and autobuy flow.
 
@@ -116,7 +116,7 @@ In Cloudflare (or your DNS), **DNS only** (grey cloud) for mail:
 | A | `mail` | Your VPS public IP |
 | MX | `@` | `mail.yourdomain.com` (priority 10) |
 
-Open **TCP 25** inbound on the VPS firewall. Only one process should listen on port 25 (`nexus-bot`).
+Open **TCP 25** inbound on the VPS firewall. Only one process should listen on port 25 (`romeo-bot`).
 
 ### 6. Install & build
 
@@ -143,14 +143,14 @@ chmod +x setup.sh
 pm2 start ecosystem.config.cjs
 pm2 save
 pm2 status
-pm2 logs nexus-bot
+pm2 logs romeo-bot
 ```
 
 | Process | Port | Role |
 |---------|------|------|
-| `nexus-bot` | 25 (SMTP) | Discord bot + mail |
-| `nexus-api` | 8000 (localhost) | FastAPI |
-| `nexus-web` | 3000 | Dashboard UI |
+| `romeo-bot` | 25 (SMTP) | Discord bot + mail |
+| `romeo-api` | 8000 (localhost) | FastAPI |
+| `romeo-web` | 3000 | Dashboard UI |
 
 Dashboard: `http://YOUR_VPS_IP:3000` — log in with `web.credentials`.
 
@@ -201,7 +201,7 @@ Command toggles, aliases, embed templates, button labels, presence, and post-ver
 
 ## Email & DNS
 
-The bot runs an SMTP server on **port 25** when `nexus-bot` starts. Mail is stored in SQLite and forwarded to Discord webhooks.
+The bot runs an SMTP server on **port 25** when `romeo-bot` starts. Mail is stored in SQLite and forwarded to Discord webhooks.
 
 ### Cloudflare DNS (DNS only / grey cloud)
 
@@ -220,14 +220,14 @@ Only one process should bind port 25 on the VPS (this bot — not a separate ins
 
 | Process | Port | Role |
 |---------|------|------|
-| `nexus-bot` | 25 (SMTP) | Discord bot + mail server |
-| `nexus-api` | 8000 | FastAPI backend |
-| `nexus-web` | 3000 | Dashboard (Nitro build) |
+| `romeo-bot` | 25 (SMTP) | Discord bot + mail server |
+| `romeo-api` | 8000 | FastAPI backend |
+| `romeo-web` | 3000 | Dashboard (Nitro build) |
 
 ```bash
 pm2 start ecosystem.config.cjs
-pm2 logs nexus-bot
-pm2 restart nexus-bot nexus-api nexus-web
+pm2 logs romeo-bot
+pm2 restart romeo-bot romeo-api romeo-web
 ```
 
 Update `CORS_ORIGINS` in `ecosystem.config.cjs` if you access the dashboard from a public IP or domain.
