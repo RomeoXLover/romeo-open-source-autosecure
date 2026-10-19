@@ -8,38 +8,38 @@ import httpx
 CONFLICT_NAMES = frozenset({"MSCC", "MSPOK", "PPLState", "uaid", "MSPRequ", "OParams"})
 
 
-def iter_cookies(session: httpx.AsyncClient):
-    return list(session.cookies.jar)
+def iter_cookies(sesja: httpx.AsyncClient):
+    return list(sesja.cookies.jar)
 
 
-def has_cookie(session: httpx.AsyncClient, name: str) -> bool:
-    return any(c.name == name for c in iter_cookies(session))
+def has_cookie(sesja: httpx.AsyncClient, name: str) -> bool:
+    return any(c.name == name for c in iter_cookies(sesja))
 
 
-def get_cookie(session: httpx.AsyncClient, name: str) -> str | None:
+def get_cookie(sesja: httpx.AsyncClient, name: str) -> str | None:
     """Return the most recently set cookie value for name (last wins)."""
     value = None
-    for c in iter_cookies(session):
+    for c in iter_cookies(sesja):
         if c.name == name:
             value = c.value
     return value
 
 
-def cookies_as_dict(session: httpx.AsyncClient) -> dict[str, str]:
+def cookies_as_dict(sesja: httpx.AsyncClient) -> dict[str, str]:
     """Flatten cookies to name->value without raising CookieConflict."""
     out: dict[str, str] = {}
-    for c in iter_cookies(session):
+    for c in iter_cookies(sesja):
         out[c.name] = c.value
     return out
 
 
-def dedupe_cookies(session: httpx.AsyncClient) -> None:
+def dedupe_cookies(sesja: httpx.AsyncClient) -> None:
     """Collapse duplicate cookie names so httpx mapping ops never raise CookieConflict.
 
     Microsoft often sets MSCC (and friends) for both host and parent domain.
     httpx.Cookies.get / dict(cookies) then raise CookieConflict.
     """
-    jar = session.cookies.jar
+    jar = sesja.cookies.jar
     # Keep last cookie per exact (name, domain, path)
     seen: dict[tuple[str, str, str], object] = {}
     for cookie in list(jar):

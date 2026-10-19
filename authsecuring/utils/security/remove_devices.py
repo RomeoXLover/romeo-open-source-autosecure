@@ -1,7 +1,7 @@
 import httpx
 
 
-async def purge_devices(session: httpx.AsyncClient, token: str, devices: dict | None):
+async def purge_devices(sesja: httpx.AsyncClient, token: str, devices: dict | None):
     if not isinstance(devices, dict):
         print("[~] - No devices payload to remove")
         return
@@ -17,7 +17,7 @@ async def purge_devices(session: httpx.AsyncClient, token: str, devices: dict | 
         if not isinstance(device, dict) or not device.get("id"):
             continue
         last_model = device.get("model") or device.get("id") or "Unknown"
-        await session.post(
+        await sesja.post(
             url="https://account.microsoft.com/devices/api/disclaim",
             headers={
                 "Accept": "application/json, text/plain, */*",

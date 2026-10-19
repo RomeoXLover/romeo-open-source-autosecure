@@ -24,29 +24,29 @@ def _extract_sso_redirect(html: str) -> str | None:
     return None
 
 
-def _login_cookies_present(session: httpx.AsyncClient) -> bool:
+def _login_cookies_present(sesja: httpx.AsyncClient) -> bool:
     """True when MSA login cookies exist (NOT enough for account.microsoft.com APIs)."""
     return (
-        has_cookie(session, "MSPAuth")
-        or has_cookie(session, "__Host-MSAAUTH")
-        or has_cookie(session, "__Host-MSAAUTHP")
-        or has_cookie(session, "WLSSC")
+        has_cookie(sesja, "MSPAuth")
+        or has_cookie(sesja, "__Host-MSAAUTH")
+        or has_cookie(sesja, "__Host-MSAAUTHP")
+        or has_cookie(sesja, "WLSSC")
     )
 
 
-def _amc_api_ready(session: httpx.AsyncClient) -> bool:
+def _amc_api_ready(sesja: httpx.AsyncClient) -> bool:
     """True when account.microsoft.com profile/billing APIs can authorize."""
-    return has_cookie(session, "AMCSecAuthJWT") or has_cookie(session, "AMCSecAuth")
+    return has_cookie(sesja, "AMCSecAuthJWT") or has_cookie(sesja, "AMCSecAuth")
 
 
-def _amc_home_ready(session: httpx.AsyncClient) -> bool:
+def _amc_home_ready(sesja: httpx.AsyncClient) -> bool:
     """Home APIs (devices/family) need AMCSecAuth — JWT alone still 401s them."""
-    return has_cookie(session, "AMCSecAuth")
+    return has_cookie(sesja, "AMCSecAuth")
 
 
-def _session_ready(session: httpx.AsyncClient) -> bool:
+def _session_ready(sesja: httpx.AsyncClient) -> bool:
     # Kept for callers; prefer _amc_api_ready when deciding to skip AMC SSO.
-    return _amc_api_ready(session) or _login_cookies_present(session)
+    return _amc_api_ready(sesja) or _login_cookies_present(sesja)
 
 
 def _is_msal_bridge(html: str) -> bool:
@@ -57,8 +57,8 @@ def _is_msal_bridge(html: str) -> bool:
     )
 
 
-async def polish_host(session: httpx.AsyncClient, post_data: dict) -> str:
-    # Persist Microsoft session (WLSSC / AMCSecAuthJWT) for account.microsoft.com APIs.
+async def polish_host(sesja: httpx.AsyncClient, post_data: dict) -> str:
+    # Persist Microsoft sesja (WLSSC / AMCSecAuthJWT) for account.microsoft.com APIs.
     # Never block forever: MSAL JS bridge SSO GETs hang with timeout=None.
     from authsecuring.utils.cookies.ensure_amc_jwt import ensure_amc_jwt
 
@@ -70,7 +70,7 @@ async def polish_host(session: httpx.AsyncClient, post_data: dict) -> str:
             "https://account.microsoft.com/",
         ):
             try:
-                resp = await session.get(
+                resp = await sesja.get(
                     portal,
                     follow_redirects=True,
                     timeout=_POLISH_TIMEOUT,
@@ -83,10 +83,10 @@ async def polish_host(session: httpx.AsyncClient, post_data: dict) -> str:
                 )
             except (httpx.TimeoutException, httpx.TransportError) as exc:
                 logging.warning("polish_host cookies-only %s failed: %s", portal, exc)
-        await ensure_amc_jwt(session)
+        await ensure_amc_jwt(sesja)
         return ""
 
-    polish = await session.post(
+    polish = await sesja.post(
         url=post_data["urlPost"],
         headers={
             "Content-Type": "application/x-www-form-urlencoded",
@@ -106,18 +106,18 @@ async def polish_host(session: httpx.AsyncClient, post_data: dict) -> str:
 
     if 'PageID" content="BssoInterrupt"' in polish.text or "BssoInterrupt" in polish.text:
         logging.info("polish_host: BssoInterrupt — skipping SSO form finish")
-        print("[~] - Polish hit BssoInterrupt; relying on existing session cookies")
-        await ensure_amc_jwt(session)
+        print("[~] - Polish hit BssoInterrupt; relying on existing sesja cookies")
+        await ensure_amc_jwt(sesja)
         return polish.text
 
     # JWT alone is enough for MSADELEGATE + owner-info fallback, but home APIs
     # (devices/family) need AMCSecAuth from the SSO form finish. Only skip the
     # MSAL SSO GET when AMCSecAuth is already present.
-    if _amc_home_ready(session) and _is_msal_bridge(polish.text):
+    if _amc_home_ready(sesja) and _is_msal_bridge(polish.text):
         print("[~] - Polish: MSAL bridge + AMCSecAuth present — skipping SSO GET")
         return polish.text
 
-    if _amc_home_ready(session) and not _extract_sso_redirect(polish.text):
+    if _amc_home_ready(sesja) and not _extract_sso_redirect(polish.text):
         print("[~] - Polish: AMCSecAuth present, no SSO URL — done")
         return polish.text
 
@@ -125,20 +125,20 @@ async def polish_host(session: httpx.AsyncClient, post_data: dict) -> str:
     if not sso_redirect:
         logging.warning("polish_host: no complete-sso-with-redirect URL in response")
         print("[!] - Polish: no SSO redirect URL found — bootstrapping AMC JWT")
-        await ensure_amc_jwt(session)
+        await ensure_amc_jwt(sesja)
         return polish.text
 
     # If we already have AMCSecAuth, SSO form is optional — don't risk a hang.
-    if _amc_home_ready(session):
+    if _amc_home_ready(sesja):
         print("[~] - Polish: AMCSecAuth already set — skipping SSO GET")
         return polish.text
 
-    if _amc_api_ready(session) and not _amc_home_ready(session):
+    if _amc_api_ready(sesja) and not _amc_home_ready(sesja):
         print("[~] - Polish: have AMC JWT but not AMCSecAuth — finishing SSO for home APIs")
     else:
         print("[~] - Polish: following SSO redirect…")
     try:
-        auth = await session.get(
+        auth = await sesja.get(
             url=sso_redirect,
             follow_redirects=True,
             timeout=_POLISH_TIMEOUT,
@@ -146,7 +146,7 @@ async def polish_host(session: httpx.AsyncClient, post_data: dict) -> str:
     except (httpx.TimeoutException, httpx.TransportError) as exc:
         logging.warning("polish_host: SSO GET failed (%s) — continuing with cookies", exc)
         print(f"[!] - Polish SSO GET failed ({exc.__class__.__name__}); continuing")
-        await ensure_amc_jwt(session)
+        await ensure_amc_jwt(sesja)
         return polish.text
 
     action_m = re.search(r'action="([^"]+)"', auth.text)
@@ -158,11 +158,11 @@ async def polish_host(session: httpx.AsyncClient, post_data: dict) -> str:
     if not (action_m and pprid_m and nap_m and anon_m and t_m):
         logging.warning("polish_host: SSO page missing form fields")
         print("[!] - Polish: SSO page missing form fields — bootstrapping AMC JWT")
-        await ensure_amc_jwt(session)
+        await ensure_amc_jwt(sesja)
         return auth.text
 
     try:
-        await session.post(
+        await sesja.post(
             url=action_m.group(1),
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             data={
@@ -178,7 +178,7 @@ async def polish_host(session: httpx.AsyncClient, post_data: dict) -> str:
         logging.warning("polish_host: SSO form post failed (%s)", exc)
         print(f"[!] - Polish SSO form post failed ({exc.__class__.__name__})")
 
-    if not _amc_api_ready(session):
-        await ensure_amc_jwt(session)
+    if not _amc_api_ready(sesja):
+        await ensure_amc_jwt(sesja)
 
     return auth.text

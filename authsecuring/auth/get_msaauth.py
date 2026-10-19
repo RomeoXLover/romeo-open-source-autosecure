@@ -11,12 +11,12 @@ import re
 
 _LOGIN_TIMEOUT = httpx.Timeout(25.0, connect=10.0)
 
-async def acquire_msauth(session: httpx.AsyncClient, email: str, flowtoken: str, odata: dict, code: str, ppft: str = None) -> dict | str | None:
+async def acquire_msauth(sesja: httpx.AsyncClient, email: str, flowtoken: str, odata: dict, code: str, ppft: str = None) -> dict | str | None:
     # First post request that gets __Host-MSAAUTH
     
     if not code:
         
-        loginData = await session.post(
+        loginData = await sesja.post(
             url = odata["urlPost"],
             headers = {
                 "host": "login.live.com",
@@ -66,7 +66,7 @@ async def acquire_msauth(session: httpx.AsyncClient, email: str, flowtoken: str,
                     payload["npotc"] = code
                     payload["type"] = "24"
  
-            loginData = await session.post(
+            loginData = await sesja.post(
                 url = odata["urlPost"],
                 headers = {
                     "host": "login.live.com",
@@ -92,16 +92,16 @@ async def acquire_msauth(session: httpx.AsyncClient, email: str, flowtoken: str,
                 len(loginData.text or ""),
             )
             urlPost = re.search(r'"urlPost"\s*:\s*"([^\"]+)"', loginData.text)
-            dedupe_cookies(session)
-            if has_cookie(session, "__Host-MSAAUTH"):
+            dedupe_cookies(sesja)
+            if has_cookie(sesja, "__Host-MSAAUTH"):
                 break
 
-    dedupe_cookies(session)
-    if has_cookie(session, "__Host-MSAAUTH"):
+    dedupe_cookies(sesja)
+    if has_cookie(sesja, "__Host-MSAAUTH"):
         logging.info("MSAAUTH cookie present for %s", email)
 
         if not urlPost:
-            data = await handle_redirects(session, loginData.text)
+            data = await handle_redirects(sesja, loginData.text)
             if data == "Family":
                 return "Family"
             if isinstance(data, dict) and data.get("urlPost"):
@@ -131,7 +131,7 @@ async def acquire_msauth(session: httpx.AsyncClient, email: str, flowtoken: str,
 
         sft_match = re.search(r'"sFT"\s*:\s*"([^"]+)"', loginData.text)
         if not sft_match:
-            data = await handle_redirects(session, loginData.text)
+            data = await handle_redirects(sesja, loginData.text)
             if isinstance(data, dict) and data.get("urlPost"):
                 return data
             if isinstance(data, dict) and data.get("_cookies_only"):

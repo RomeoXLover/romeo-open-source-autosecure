@@ -1,17 +1,17 @@
 import logging
 import httpx
 
-async def remove_zyger(session: httpx.AsyncClient, apicanary: str):
+async def remove_zyger(sesja: httpx.AsyncClient, canary: str):
     # Removes login through pass keys aka Zyger / Windows Hello
     
-    remove = await session.post(
+    remove = await sesja.post(
         url = "https://account.live.com/API/Proofs/RevokeWindowsHelloProofs",
         headers = {
             "host": "account.live.com",
             "Accept": "application/json",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "X-Requested-With": "XMLHttpRequest",
-            "canary": apicanary
+            "canary": canary
         },
         json = {
             "uiflvr": 1001,

@@ -110,13 +110,13 @@ def classify_entitlement_items(items: list[dict]) -> dict[str, Any]:
 
 
 async def _get_json(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     url: str,
     *,
     headers: dict,
     label: str,
 ) -> dict | None:
-    resp = await session.get(url, headers=headers)
+    resp = await sesja.get(url, headers=headers)
     if resp.status_code in (408, 425, 429, 500, 502, 503, 504):
         raise TransientMCError(f"{label} status {resp.status_code}", status=resp.status_code)
     if resp.status_code == 401:
@@ -148,10 +148,10 @@ async def _fetch_entitlements_once(ssid: str) -> dict[str, Any]:
     request_id = str(uuid.uuid4())
     license_url = f"{LICENSE_URL}?requestId={request_id}"
 
-    async with httpx.AsyncClient(timeout=30.0) as session:
+    async with httpx.AsyncClient(timeout=30.0) as sesja:
         # Primary: /entitlements/license — includes source (PURCHASE vs GAMEPASS)
         license_json = await _get_json(
-            session, license_url, headers=headers, label="entitlements/license",
+            sesja, license_url, headers=headers, label="entitlements/license",
         )
         license_items = _iter_items(license_json) if license_json is not None else []
         classified = classify_entitlement_items(license_items)
@@ -170,7 +170,7 @@ async def _fetch_entitlements_once(ssid: str) -> dict[str, Any]:
         # game_minecraft here, so it cannot distinguish PURCHASE vs GAMEPASS.
         # Only use it to confirm "has some MC access" when license had no source.
         mcstore_json = await _get_json(
-            session, MCSTORE_URL, headers=headers, label="entitlements/mcstore",
+            sesja, MCSTORE_URL, headers=headers, label="entitlements/mcstore",
         )
         mcstore_items = _iter_items(mcstore_json) if mcstore_json is not None else []
         names = {str(i.get("name") or "").lower() for i in mcstore_items}

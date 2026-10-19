@@ -4,8 +4,8 @@ from mc.retry import TransientMCError, with_retries
 
 
 async def _get_capes_once(ssid: str) -> list:
-    async with httpx.AsyncClient(timeout=30.0) as session:
-        response = await session.get(
+    async with httpx.AsyncClient(timeout=30.0) as sesja:
+        response = await sesja.get(
             url="https://api.minecraftservices.com/minecraft/profile",
             headers={"Authorization": f"Bearer {ssid}"},
         )

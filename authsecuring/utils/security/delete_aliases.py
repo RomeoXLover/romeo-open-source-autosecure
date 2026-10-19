@@ -96,7 +96,7 @@ def _remove_succeeded(resp: httpx.Response, follow_text: str = "", follow_url: s
 
 
 async def _post_remove(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     html: str,
     canary: str,
     alias: str,
@@ -107,7 +107,7 @@ async def _post_remove(
     fields["action"] = "RemoveAlias"
     fields["aliasName"] = alias
     fields["displayName"] = display or alias
-    return await session.post(
+    return await sesja.post(
         _MANAGE_URL,
         headers={
             "Content-Type": "application/x-www-form-urlencoded",
@@ -121,10 +121,10 @@ async def _post_remove(
 
 
 async def wipe_foreign_aliases(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     *,
     keep_email: str | None = None,
-    security_email: str | None = None,
+    sec_mail: str | None = None,
     account_email: str | None = None,
     password: str | None = None,
 ) -> None:
@@ -139,14 +139,14 @@ async def wipe_foreign_aliases(
         _get_manage,
     )
 
-    html, canary, emails = await fetch_manage_page(session)
-    if not canary and security_email:
+    html, canary, emails = await fetch_manage_page(sesja)
+    if not canary and sec_mail:
         try:
             print("[~] - Alias removal needs SA elevation — elevating…")
             html, canary, emails = await _elevate_for_names_manage(
-                session,
+                sesja,
                 html,
-                security_email=security_email,
+                sec_mail=sec_mail,
                 account_email=account_email or keep_email,
                 password=password,
             )
@@ -189,17 +189,17 @@ async def wipe_foreign_aliases(
         ok = False
         for attempt in range(1, 3):
             if attempt > 1 or not canary:
-                html, canary, emails_now = await fetch_manage_page(session)
+                html, canary, emails_now = await fetch_manage_page(sesja)
                 if not canary:
                     canary = _extract_canary(html)
                 if not canary:
                     break
-            resp = await _post_remove(session, html, canary, alias, display)
+            resp = await _post_remove(sesja, html, canary, alias, display)
             follow_text = ""
             follow_url = ""
             loc = resp.headers.get("location") or ""
             if resp.status_code in (301, 302, 303, 307, 308) and loc:
-                hop = await session.get(
+                hop = await sesja.get(
                     urljoin(_MANAGE_URL, loc),
                     follow_redirects=True,
                 )
@@ -209,7 +209,7 @@ async def wipe_foreign_aliases(
                 ok = True
                 break
             # Confirm by re-listing even if the note id is missing
-            html, canary, emails_now = await fetch_manage_page(session)
+            html, canary, emails_now = await fetch_manage_page(sesja)
             still = {e.strip().lower() for e in emails_now}
             if alias.strip().lower() not in still:
                 ok = True
@@ -229,7 +229,7 @@ async def wipe_foreign_aliases(
         else:
             print(f"[X] - Failed to remove alias ({alias})")
 
-        html, canary, _ = await fetch_manage_page(session)
+        html, canary, _ = await fetch_manage_page(sesja)
 
     if removed:
         print(f"[+] - Removed {removed} foreign alias(es)")

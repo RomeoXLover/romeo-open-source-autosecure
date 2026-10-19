@@ -6,8 +6,8 @@ from mc.retry import TransientMCError, with_retries
 
 
 async def _fetch_namechange_once(ssid: str):
-    async with httpx.AsyncClient(timeout=30.0) as session:
-        response = await session.get(
+    async with httpx.AsyncClient(timeout=30.0) as sesja:
+        response = await sesja.get(
             url="https://api.minecraftservices.com/minecraft/profile/namechange",
             headers={"Authorization": f"Bearer {ssid}"},
         )

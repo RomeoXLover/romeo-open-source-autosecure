@@ -6,7 +6,7 @@ from authsecuring.utils.proxy import build_proxy_url
 
 
 def open_session(cookies: httpx.Cookies | None = None, user_agent: str | None = None) -> httpx.AsyncClient:
-    # Persistent session that handles cookies automatically.
+    # Persistent sesja that handles cookies automatically.
     # Response hook collapses duplicate MSCC/etc so httpx never raises CookieConflict.
     # Each call mints a fresh sticky proxy SSID (60m) when proxy is enabled.
 

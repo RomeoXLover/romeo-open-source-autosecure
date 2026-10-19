@@ -22,22 +22,22 @@ rom = logging.getLogger(__name__)
 _TIMEOUT = httpx.Timeout(25.0, connect=10.0)
 
 
-def has_amc_api_cookies(session: httpx.AsyncClient) -> bool:
-    return has_cookie(session, "AMCSecAuthJWT") or has_cookie(session, "AMCSecAuth")
+def has_amc_api_cookies(sesja: httpx.AsyncClient) -> bool:
+    return has_cookie(sesja, "AMCSecAuthJWT") or has_cookie(sesja, "AMCSecAuth")
 
 
-async def ensure_amc_jwt(session: httpx.AsyncClient, *, attempts: int = 2) -> bool:
+async def ensure_amc_jwt(sesja: httpx.AsyncClient, *, attempts: int = 2) -> bool:
     """Best-effort: walk account.microsoft.com OAuth until AMC JWT is set.
 
     Mirrors dona ``tokens/amcjwt.py`` + ``tokens/amc.py`` silent-signin.
     Returns True when an AMC API cookie is present afterwards.
     Retries once on ReadTimeout — a lone timeout was aborting whole secure().
     """
-    if has_amc_api_cookies(session):
+    if has_amc_api_cookies(sesja):
         return True
 
     for attempt in range(1, max(1, attempts) + 1):
-        ok = await _ensure_amc_jwt_once(session, attempt=attempt)
+        ok = await _ensure_amc_jwt_once(sesja, attempt=attempt)
         if ok:
             return True
         if attempt < attempts:
@@ -45,13 +45,13 @@ async def ensure_amc_jwt(session: httpx.AsyncClient, *, attempts: int = 2) -> bo
     return False
 
 
-async def _ensure_amc_jwt_once(session: httpx.AsyncClient, *, attempt: int = 1) -> bool:
-    if has_amc_api_cookies(session):
+async def _ensure_amc_jwt_once(sesja: httpx.AsyncClient, *, attempt: int = 1) -> bool:
+    if has_amc_api_cookies(sesja):
         return True
 
     try:
         # --- amcjwt-style redirect chase (no JS) ---
-        resp = await session.get(
+        resp = await sesja.get(
             "https://account.microsoft.com/",
             follow_redirects=False,
             timeout=_TIMEOUT,
@@ -63,26 +63,26 @@ async def _ensure_amc_jwt_once(session: httpx.AsyncClient, *, attempt: int = 1) 
             if not loc.startswith("http"):
                 loc = urljoin(str(resp.url), loc)
             rom.info("ensure_amc_jwt hop %s → %s", hop, loc[:180])
-            resp = await session.get(loc, follow_redirects=False, timeout=_TIMEOUT)
-            if has_amc_api_cookies(session):
+            resp = await sesja.get(loc, follow_redirects=False, timeout=_TIMEOUT)
+            if has_amc_api_cookies(sesja):
                 print("[+] - AMCSecAuthJWT established (redirect chase)")
                 return True
             # Sometimes the final hop is 200 with Set-Cookie
-            if resp.status_code in (200, 302, 303) and has_amc_api_cookies(session):
+            if resp.status_code in (200, 302, 303) and has_amc_api_cookies(sesja):
                 return True
 
         # Follow redirects fully once more (oauth complete pages)
-        resp = await session.get(
+        resp = await sesja.get(
             "https://account.microsoft.com/",
             follow_redirects=True,
             timeout=_TIMEOUT,
         )
-        if has_amc_api_cookies(session):
+        if has_amc_api_cookies(sesja):
             print("[+] - AMCSecAuthJWT established (full redirect)")
             return True
 
         # --- amc-style silent signin with ``t`` token ---
-        resp = await session.get(
+        resp = await sesja.get(
             "https://account.microsoft.com/",
             follow_redirects=False,
             timeout=_TIMEOUT,
@@ -91,7 +91,7 @@ async def _ensure_amc_jwt_once(session: httpx.AsyncClient, *, attempt: int = 1) 
         if loc:
             if not loc.startswith("http"):
                 loc = urljoin(str(resp.url), loc)
-            step2 = await session.get(loc, follow_redirects=True, timeout=_TIMEOUT)
+            step2 = await sesja.get(loc, follow_redirects=True, timeout=_TIMEOUT)
             text = step2.text or ""
             t_m = re.search(
                 r'<input[^>]*name="t"[^>]*value="([^"]+)"',
@@ -118,24 +118,24 @@ async def _ensure_amc_jwt_once(session: httpx.AsyncClient, *, attempt: int = 1) 
                     ),
                 )
                 for post_url in post_urls:
-                    await session.post(
+                    await sesja.post(
                         post_url,
                         data={"t": t_m.group(1)},
                         headers={"X-Requested-With": "XMLHttpRequest"},
                         follow_redirects=True,
                         timeout=_TIMEOUT,
                     )
-                    if has_amc_api_cookies(session):
+                    if has_amc_api_cookies(sesja):
                         print("[+] - AMCSecAuth established (silent signin)")
                         return True
 
         # Last resort: hit profile which often finishes oauth
-        await session.get(
+        await sesja.get(
             "https://account.microsoft.com/profile?lang=en-US",
             follow_redirects=True,
             timeout=_TIMEOUT,
         )
-        if has_amc_api_cookies(session):
+        if has_amc_api_cookies(sesja):
             print("[+] - AMCSecAuthJWT established (profile hop)")
             return True
 
@@ -146,7 +146,7 @@ async def _ensure_amc_jwt_once(session: httpx.AsyncClient, *, attempt: int = 1) 
     except Exception:
         rom.exception("ensure_amc_jwt crashed (attempt %s)", attempt)
 
-    ok = has_amc_api_cookies(session)
+    ok = has_amc_api_cookies(sesja)
     if not ok and attempt >= 2:
         print("[!] - No AMCSecAuthJWT — account.microsoft.com APIs will 401")
     return ok

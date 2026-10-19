@@ -156,7 +156,7 @@ def _is_auto_submit_bridge(html: str, page_url: str = "") -> bool:
 
 
 async def _post_auto_submit_bridge(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     html: str,
     page_url: str,
 ) -> httpx.Response:
@@ -168,7 +168,7 @@ async def _post_auto_submit_bridge(
         )
     action, fields = sso
     rom.info("get_xbl: posting proofs auto-submit bridge → %s", action[:200])
-    resp = await session.post(
+    resp = await sesja.post(
         action,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data=fields,
@@ -186,7 +186,7 @@ async def _post_auto_submit_bridge(
                 return resp
         loc = resp.headers.get("Location")
         if loc:
-            resp = await session.get(
+            resp = await sesja.get(
                 urljoin(str(resp.url), loc), follow_redirects=False
             )
             continue
@@ -195,7 +195,7 @@ async def _post_auto_submit_bridge(
             nested = _sso_payload(body, str(resp.url))
             if nested:
                 action2, fields2 = nested
-                resp = await session.post(
+                resp = await sesja.post(
                     action2,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                     data=fields2,
@@ -446,7 +446,7 @@ def _scrape_catb_tokens(html: str, page_url: str, security_email: str | None) ->
 
 
 async def _send_catb_ott(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     tokens: dict,
     page_url: str,
 ) -> None:
@@ -482,7 +482,7 @@ async def _send_catb_ott(
         "scid": tokens["scid"],
         "hpgid": tokens["hpgid"],
     }
-    resp = await session.post(
+    resp = await sesja.post(
         _SEND_OTT_URL,
         headers=headers,
         content=json.dumps(body),
@@ -506,7 +506,7 @@ async def _send_catb_ott(
 
 
 async def _verify_catb_ott(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     tokens: dict,
     code: str,
 ) -> httpx.Response:
@@ -518,7 +518,7 @@ async def _verify_catb_ott(
         "canary": tokens["form_canary"],
         "GeneralVerify": "0",
     }
-    return await session.post(
+    return await sesja.post(
         tokens["verify_action"],
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data=data,
@@ -527,7 +527,7 @@ async def _verify_catb_ott(
 
 
 async def _follow_location(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     resp: httpx.Response,
 ) -> httpx.Response:
     """Follow a short redirect chain without consuming forever."""
@@ -540,12 +540,12 @@ async def _follow_location(
         if not loc:
             return current
         url = urljoin(str(current.url), loc)
-        current = await session.get(url, follow_redirects=False)
+        current = await sesja.get(url, follow_redirects=False)
     return current
 
 
 async def _complete_catb_with_otp(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     html: str,
     page_url: str,
     security_email: str,
@@ -566,20 +566,20 @@ async def _complete_catb_with_otp(
             tokens["hpgid"],
         )
         since = time.time()
-        await _send_catb_ott(session, tokens, current_url)
+        await _send_catb_ott(sesja, tokens, current_url)
         code = await fetch_otp(security_email, timeout=90, since=since)
         if not code:
             raise TransientMCError(
                 f"CatB OTP did not arrive at {security_email} (round {round_i})"
             )
         print(f"[+] - CatB overprotective OTP round {round_i}: {code}")
-        last_resp = await _verify_catb_ott(session, tokens, code)
+        last_resp = await _verify_catb_ott(sesja, tokens, code)
         token = _token_from_response(last_resp)
         if token:
             return last_resp
 
         loc = last_resp.headers.get("Location") or ""
-        followed = await _follow_location(session, last_resp)
+        followed = await _follow_location(sesja, last_resp)
         token = _token_from_response(followed)
         if token:
             return followed
@@ -588,7 +588,7 @@ async def _complete_catb_with_otp(
         next_url = loc or str(followed.url)
         next_html = followed.text or ""
         if not next_html.strip() and loc:
-            page = await session.get(
+            page = await sesja.get(
                 urljoin(str(last_resp.url), loc),
                 follow_redirects=True,
             )
@@ -621,7 +621,7 @@ async def _complete_catb_with_otp(
 
 
 async def _skip_proofs_remind(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     html: str,
     page_url: str,
 ) -> httpx.Response:
@@ -636,7 +636,7 @@ async def _skip_proofs_remind(
         "canary": canary,
     }
     rom.info("get_xbl: proofs/remind LooksGood → %s", action[:200])
-    return await session.post(
+    return await sesja.post(
         action,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data=data,
@@ -645,17 +645,17 @@ async def _skip_proofs_remind(
 
 
 async def _skip_proofs_interrupt(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     html: str,
     page_url: str,
 ) -> httpx.Response:
     if "proofs/remind" in (page_url or "").lower():
-        return await _skip_proofs_remind(session, html, page_url)
+        return await _skip_proofs_remind(sesja, html, page_url)
 
     skip_url = _skip_url_from_html(html)
     if skip_url:
         rom.info("get_xbl: following proofs skip URL → %s", skip_url[:200])
-        return await session.get(skip_url, follow_redirects=False)
+        return await sesja.get(skip_url, follow_redirects=False)
 
     action = _extract_form_action(html, page_url)
     fields = _extract_hidden_fields(html)
@@ -682,7 +682,7 @@ async def _skip_proofs_interrupt(
             fields["canary"] = canary
 
     rom.info("get_xbl: skipping proofs interrupt via POST action=Skip → %s", action[:200])
-    return await session.post(
+    return await sesja.post(
         action,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data=fields,
@@ -691,7 +691,7 @@ async def _skip_proofs_interrupt(
 
 
 async def _resolve_proofs_interrupt(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     html: str,
     page_url: str,
     security_email: str | None,
@@ -700,7 +700,7 @@ async def _resolve_proofs_interrupt(
     # oauth20_authorize often returns an auto-submit fmHF form pointing at
     # proofs/Verify?mpcxt=CATB — that shim has no OTT radios. POST it first.
     if _is_auto_submit_bridge(html, page_url):
-        bridged = await _post_auto_submit_bridge(session, html, page_url)
+        bridged = await _post_auto_submit_bridge(sesja, html, page_url)
         token = _token_from_response(bridged)
         if token:
             return bridged
@@ -708,7 +708,7 @@ async def _resolve_proofs_interrupt(
         page_url = str(bridged.url)
         loc = bridged.headers.get("Location")
         if loc and (not html.strip() or _is_auto_submit_bridge(html, page_url)):
-            bridged = await session.get(
+            bridged = await sesja.get(
                 urljoin(str(bridged.url), loc), follow_redirects=True
             )
             token = _token_from_response(bridged)
@@ -726,7 +726,7 @@ async def _resolve_proofs_interrupt(
     # After CatB, MS often sends proofs/remind — LooksGood continues SSO
     if "proofs/remind" in page_url.lower():
         print("[~] - proofs/remind during Xbox SSO — confirming Looks good")
-        return await _skip_proofs_remind(session, html, page_url)
+        return await _skip_proofs_remind(sesja, html, page_url)
 
     # CatB: Skip is unreliable — go straight to OTP when we have a security email
     # and the real Verify challenge (OTT radios / sProofData) is present.
@@ -736,9 +736,9 @@ async def _resolve_proofs_interrupt(
         and (_find_proof_option(html) or _cfg_str(html, "sProofData"))
     ):
         print("[~] - CatB overprotective during Xbox SSO — completing via security-email OTP")
-        return await _complete_catb_with_otp(session, html, page_url, security_email)
+        return await _complete_catb_with_otp(sesja, html, page_url, security_email)
 
-    skipped = await _skip_proofs_interrupt(session, html, page_url)
+    skipped = await _skip_proofs_interrupt(sesja, html, page_url)
     token = _token_from_response(skipped)
     if token:
         return skipped
@@ -752,28 +752,28 @@ async def _resolve_proofs_interrupt(
     if security_email and still_blocked:
         # If Location is Verify, fetch HTML; if oauth, Skip failed — re-fetch verify if needed
         if _is_proofs_interrupt(loc):
-            page = await session.get(urljoin(str(skipped.url), loc), follow_redirects=True)
+            page = await sesja.get(urljoin(str(skipped.url), loc), follow_redirects=True)
             print(
                 "[~] - CatB Skip bounced — completing via security-email OTP"
             )
             return await _complete_catb_with_otp(
-                session, page.text or "", str(page.url), security_email
+                sesja, page.text or "", str(page.url), security_email
             )
         if _is_proofs_interrupt(page_url, html):
             print("[~] - proofs Skip ineffective — completing via security-email OTP")
-            return await _complete_catb_with_otp(session, html, page_url, security_email)
+            return await _complete_catb_with_otp(sesja, html, page_url, security_email)
 
     return skipped
 
 
 async def _follow_sisu(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     security_email: str | None = None,
 ) -> dict | None:
     url = _SISU_URL
 
     for hop in range(_MAX_HOPS):
-        resp = await session.get(url, follow_redirects=False)
+        resp = await sesja.get(url, follow_redirects=False)
         status = resp.status_code
         location = resp.headers.get("Location")
         body = resp.text or ""
@@ -788,18 +788,18 @@ async def _follow_sisu(
 
         if location and _is_proofs_interrupt(location):
             rom.info("get_xbl: redirect into proofs interrupt → %s", location[:200])
-            verify = await session.get(urljoin(page_url, location), follow_redirects=False)
+            verify = await sesja.get(urljoin(page_url, location), follow_redirects=False)
             token = _token_from_response(verify)
             if token:
                 return _decode_xbl(token)
             # May be another redirect to the HTML page
             vloc = verify.headers.get("Location")
             if vloc and not (verify.text or "").strip():
-                verify = await session.get(
+                verify = await sesja.get(
                     urljoin(str(verify.url), vloc), follow_redirects=True
                 )
             resolved = await _resolve_proofs_interrupt(
-                session,
+                sesja,
                 verify.text or "",
                 str(verify.url),
                 security_email,
@@ -827,7 +827,7 @@ async def _follow_sisu(
 
         if _is_proofs_interrupt(page_url, body):
             resolved = await _resolve_proofs_interrupt(
-                session, body, page_url, security_email
+                sesja, body, page_url, security_email
             )
             token = _token_from_response(resolved)
             if token:
@@ -853,7 +853,7 @@ async def _follow_sisu(
                 rom.info(
                     "get_xbl: SSO form targets proofs interrupt — posting then resolving"
                 )
-                post = await session.post(
+                post = await sesja.post(
                     action,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                     data=fields,
@@ -866,7 +866,7 @@ async def _follow_sisu(
                 verify_html = post.text or ""
                 verify_url = str(post.url)
                 if loc2 and _is_proofs_interrupt(loc2):
-                    verify = await session.get(
+                    verify = await sesja.get(
                         urljoin(str(post.url), loc2), follow_redirects=True
                     )
                     token = _token_from_response(verify)
@@ -878,7 +878,7 @@ async def _follow_sisu(
                     url = urljoin(str(post.url), loc2)
                     continue
                 resolved = await _resolve_proofs_interrupt(
-                    session, verify_html, verify_url, security_email
+                    sesja, verify_html, verify_url, security_email
                 )
                 token = _token_from_response(resolved)
                 if token:
@@ -892,7 +892,7 @@ async def _follow_sisu(
                 )
 
             rom.info("get_xbl: submitting SSO continue form → %s", action[:180])
-            post = await session.post(
+            post = await sesja.post(
                 action,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
                 data=fields,
@@ -909,14 +909,14 @@ async def _follow_sisu(
             if sso2:
                 action2, fields2 = sso2
                 if _is_proofs_interrupt(action2):
-                    post2 = await session.post(
+                    post2 = await sesja.post(
                         action2,
                         headers={"Content-Type": "application/x-www-form-urlencoded"},
                         data=fields2,
                         follow_redirects=False,
                     )
                     resolved = await _resolve_proofs_interrupt(
-                        session,
+                        sesja,
                         post2.text or "",
                         str(post2.url),
                         security_email,
@@ -931,7 +931,7 @@ async def _follow_sisu(
                         url = urljoin(str(resolved.url), loc3)
                         continue
                     raise TransientMCError("nested proofs SSO resolve failed")
-                post2 = await session.post(
+                post2 = await sesja.post(
                     action2,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                     data=fields2,
@@ -952,7 +952,7 @@ async def _follow_sisu(
         if kmsi:
             url_post, sft = kmsi
             rom.info("get_xbl: KMSI finish on Xbox SSO bridge")
-            post = await session.post(
+            post = await sesja.post(
                 url_post,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
                 data=f"PPFT={sft}&canary=&LoginOptions=3&type=28&hpgrequestid=&ctx=",
@@ -980,19 +980,19 @@ async def _follow_sisu(
 
 
 async def _get_xbl_once(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     security_email: str | None = None,
 ) -> dict | None:
-    return await _follow_sisu(session, security_email=security_email)
+    return await _follow_sisu(sesja, security_email=security_email)
 
 
 async def fetch_xbl(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     security_email: str | None = None,
 ) -> dict | None:
     return await with_retries(
         "get_xbl",
-        lambda: _get_xbl_once(session, security_email=security_email),
+        lambda: _get_xbl_once(sesja, security_email=security_email),
         attempts=7,
         base_delay=4.0,
         retry_on_none=False,

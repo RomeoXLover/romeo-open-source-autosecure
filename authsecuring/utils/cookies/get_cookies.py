@@ -41,7 +41,7 @@ def json_unescape(raw: str) -> str:
         return raw.replace("\\/", "/").replace('\\"', '"')
 
 
-async def fetch_canary(session: httpx.AsyncClient) -> str | None:
+async def fetch_canary(sesja: httpx.AsyncClient) -> str | None:
     """Scrape apiCanary for SA elevation APIs.
 
     Returns None instead of crashing when password/reset has no canary
@@ -54,7 +54,7 @@ async def fetch_canary(session: httpx.AsyncClient) -> str | None:
     )
     for url in urls:
         try:
-            data = await session.get(
+            data = await sesja.get(
                 url=url,
                 headers={"host": "account.live.com"},
                 follow_redirects=True,

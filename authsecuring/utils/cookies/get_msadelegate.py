@@ -16,9 +16,9 @@ rom = logging.getLogger(__name__)
 _TIMEOUT = httpx.Timeout(20.0, connect=10.0)
 
 
-async def get_msadelegate(session: httpx.AsyncClient) -> str | None:
+async def get_msadelegate(sesja: httpx.AsyncClient) -> str | None:
     try:
-        resp = await session.get(
+        resp = await sesja.get(
             "https://account.microsoft.com/auth/acquire-onbehalf-of-token?scopes=pidl",
             headers={
                 "Accept": "application/json, text/plain, */*",

@@ -64,18 +64,18 @@ def detect_fed_providers(html: str) -> list[str]:
 
 
 async def _remove_one(
-    session: httpx.AsyncClient,
-    apicanary: str,
+    sesja: httpx.AsyncClient,
+    canary: str,
     provider: str,
 ) -> bool:
-    resp = await session.post(
+    resp = await sesja.post(
         url=REMOVE_FED_URL,
         headers={
             "host": "account.live.com",
             "Accept": "application/json",
             "Content-Type": "application/json; charset=UTF-8",
             "X-Requested-With": "XMLHttpRequest",
-            "canary": apicanary,
+            "canary": canary,
             "Referer": PROOFS_PAGE,
             "Origin": "https://account.live.com",
         },
@@ -113,14 +113,14 @@ async def _remove_one(
     return False
 
 
-async def wipe_fed_creds(session: httpx.AsyncClient, apicanary: str) -> dict:
+async def wipe_fed_creds(sesja: httpx.AsyncClient, canary: str) -> dict:
     """Detect + remove Samsung/Apple/Google/GitHub/LinkedIn federated credentials."""
-    if not apicanary:
+    if not canary:
         print("[!] - Skipping RemoveFedCred (no apiCanary)")
         return {"removed": [], "failed": [], "detected": []}
 
     try:
-        page = await session.get(
+        page = await sesja.get(
             PROOFS_PAGE,
             headers={
                 "Accept-Language": "en-US,en;q=0.5",
@@ -144,7 +144,7 @@ async def wipe_fed_creds(session: httpx.AsyncClient, apicanary: str) -> dict:
     failed: list[str] = []
     for provider in detected:
         try:
-            ok = await _remove_one(session, apicanary, provider)
+            ok = await _remove_one(sesja, canary, provider)
         except Exception as exc:
             logger.warning("RemoveFedCred %s exception: %s", provider, exc)
             ok = False

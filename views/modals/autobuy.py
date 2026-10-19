@@ -1055,7 +1055,7 @@ async def _autobuy_sell_callback(
                     elif (
                         "recoveruser" in reason_l
                         or "recovery credentials expired" in reason_l
-                        or "recovery session" in reason_l
+                        or "recovery sesja" in reason_l
                         or "recovery code" in reason_l
                         or "microsoft error 6001" in reason_l
                         or "microsoft error 1300" in reason_l

@@ -1,12 +1,12 @@
 import httpx
 
-async def kick_sessions(session: httpx.AsyncClient, apicanary: str):
+async def kick_sessions(sesja: httpx.AsyncClient, canary: str):
     # Logout of all devices
     
-    remove = await session.post(
+    remove = await sesja.post(
         "https://account.live.com/API/Proofs/DeleteDevices",
         headers = {
-            "canary": apicanary
+            "canary": canary
         },
         json = {
             "uiflvr": 1001,

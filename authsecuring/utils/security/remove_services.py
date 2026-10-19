@@ -2,10 +2,10 @@ import urllib.parse
 import httpx
 import re
 
-async def strip_app_links(session: httpx.AsyncClient):
+async def strip_app_links(sesja: httpx.AsyncClient):
     # Removes third party services like minecraft launchers
     
-    uatRequest = await session.get(
+    uatRequest = await sesja.get(
         url = "https://account.live.com/consent/Manage?guat=1",
         headers={
             "Content-Type": "application/x-www-form-urlencoded",
@@ -25,7 +25,7 @@ async def strip_app_links(session: httpx.AsyncClient):
     print("[~] - Removing Services")
 
     for ID in client_ids:
-        response = await session.get(
+        response = await sesja.get(
             url = f"https://account.live.com/consent/Edit?client_id={ID}",
             headers = {
                 "Content-Type": "application/x-www-form-urlencoded"
@@ -36,7 +36,7 @@ async def strip_app_links(session: httpx.AsyncClient):
         postURL = re.search(r'name="editConsentForm"[^>]*action="([^"]+)"', response.text).group(1)
         canary = urllib.parse.quote(re.search(r'canary"[^>]*value="([^"]+)"', response.text).group(1), safe="")
         
-        await session.post(
+        await sesja.post(
             url = postURL,
             headers = {
                 "Content-Type": "application/x-www-form-urlencoded"

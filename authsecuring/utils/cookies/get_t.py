@@ -4,11 +4,11 @@ import re
 import httpx
 
 
-async def fetch_t(session: httpx.AsyncClient) -> str | None:
+async def fetch_t(sesja: httpx.AsyncClient) -> str | None:
     """Scrape the login ``t`` token used by get_amrp / proofs Add handshake.
 
     Microsoft often serves PageID i5600 (interrupt) instead of the classic
-    hidden ``t`` input when the session is already signed in. In that case we
+    hidden ``t`` input when the sesja is already signed in. In that case we
     try alternate field names / sFT, then return None so callers can soft-skip.
     """
     url = (
@@ -18,7 +18,7 @@ async def fetch_t(session: httpx.AsyncClient) -> str | None:
         "&lc=1033&id=38936&mkt=en-US"
     )
 
-    fetchT = await session.get(url, follow_redirects=False)
+    fetchT = await sesja.get(url, follow_redirects=False)
     html = fetchT.text or ""
 
     patterns = (

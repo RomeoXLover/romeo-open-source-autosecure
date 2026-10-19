@@ -9,11 +9,11 @@ rom = logging.getLogger(__name__)
 
 
 class MailHandler:
-    async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
+    async def handle_RCPT(self, server, sesja, envelope, address, rcpt_options):
         envelope.rcpt_tos.append(address)
         return "250 OK"
 
-    async def handle_DATA(self, server, session, envelope):
+    async def handle_DATA(self, server, sesja, envelope):
         msg = message_from_bytes(envelope.content)
         subject = msg.get("subject", "")
         body = _extract_body(msg)

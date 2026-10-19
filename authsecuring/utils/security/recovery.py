@@ -18,12 +18,12 @@ class RecoverError(Exception):
         reason: str,
         *,
         ms_code: object | None = None,
-        credentials_changed: bool = False,
+        creds_moved: bool = False,
     ):
         super().__init__(reason)
         self.reason = reason
         self.ms_code = ms_code
-        self.credentials_changed = credentials_changed
+        self.creds_moved = creds_moved
 
 
 # ResetPassword / login copy for accounts Microsoft does not recognize.
@@ -74,7 +74,7 @@ def _raise_if_account_missing(body: str | None, server_data: dict | None = None)
 
 
 async def verify_password_works(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     email: str,
     password: str,
     *,
@@ -89,10 +89,10 @@ async def verify_password_works(
     ``unknown`` = rate-limit / interrupt / inconclusive — NOT the same as bad.
     """
     async def _once() -> str:
-        dedupe_cookies(session)
-        live = await livedata(session)
-        dedupe_cookies(session)
-        check = await session.post(
+        dedupe_cookies(sesja)
+        live = await livedata(sesja)
+        dedupe_cookies(sesja)
+        check = await sesja.post(
             url=live["urlPost"],
             headers={
                 "Content-Type": "application/x-www-form-urlencoded",
@@ -123,7 +123,7 @@ async def verify_password_works(
             },
             follow_redirects=False,
         )
-        dedupe_cookies(session)
+        dedupe_cookies(sesja)
         text = check.text or ""
         lower = text.lower()
 
@@ -159,7 +159,7 @@ async def verify_password_works(
 
         if (
             check.status_code in (302, 303)
-            or has_cookie(session, "__Host-MSAAUTH")
+            or has_cookie(sesja, "__Host-MSAAUTH")
             or "account.live.com" in (check.headers.get("location") or "")
         ):
             logging.info("Password verify OK for %s (status=%s)", email, check.status_code)
@@ -192,7 +192,7 @@ async def verify_password_works(
         return result
     except httpx.CookieConflict as exc:
         logging.warning("Password verify CookieConflict for %s: %s", email, exc)
-        dedupe_cookies(session)
+        dedupe_cookies(sesja)
         return "unknown"
     except Exception:
         logging.exception("Password verify crashed for %s", email)
@@ -219,7 +219,7 @@ RECOVER_PUBLIC_KEY = "25CE4D96CB3A09A69CD847C69FC6D40AF4A4DE12"  # unused; kept 
 _MS_RECOVERY_CODE_ERRORS = {
     1300: "Invalid or already-used recovery code (Microsoft error 1300).",
     1301: "Recovery code rejected (Microsoft error 1301).",
-    1200: "Recovery session expired — retry with the same recovery code.",
+    1200: "Recovery sesja expired — retry with the same recovery code.",
     # 6001 = ExpiredCredentials — almost always means we called RecoverUser with a
     # non-Recover token (s:/Submit wait-period). Not fixed by a "fresh" RC.
     6001: (
@@ -256,7 +256,7 @@ def _require_recover_token(token: str | None, *, proofs: list | None = None) -> 
     """Return unquoted token if it is Recover (v:); else raise RecoverError.
 
     Calling RecoverUser with s:/Submit causes Microsoft error 6001 and the
-    misleading 'session expired / re-submit' seller message (~70% of fails).
+    misleading 'sesja expired / re-submit' seller message (~70% of fails).
     """
     tok = unquote(token or "").strip()
     kind = _token_type(tok)
@@ -280,14 +280,14 @@ def _require_recover_token(token: str | None, *, proofs: list | None = None) -> 
             "still work for the seller."
             + proof_note,
             ms_code=6001,
-            credentials_changed=False,
+            creds_moved=False,
         )
     raise RecoverError(
         f"Microsoft VerifyRecoveryCode returned token type {kind!r}, not Recover (v:). "
         "Cannot call RecoverUser."
         + proof_note,
         ms_code=6001,
-        credentials_changed=False,
+        creds_moved=False,
     )
 
 
@@ -404,7 +404,7 @@ def _new_cloudscraper(proxy_url: str | None, *, what: str):
 
 def _verify_recovery_code_cloudscraper_sync(
     email: str,
-    recovery_code: str,
+    rec_code: str,
     proxy_url: str | None = None,
 ) -> tuple[str, str | None, dict | None]:
     """VerifyRecoveryCode only — never calls RecoverUser / SubmitRecovery.
@@ -418,8 +418,8 @@ def _verify_recovery_code_cloudscraper_sync(
     import time
     from urllib.parse import quote_plus, unquote as _unquote
 
-    recovery_code = (recovery_code or "").strip().upper().replace(" ", "")
-    if not email or not recovery_code:
+    rec_code = (rec_code or "").strip().upper().replace(" ", "")
+    if not email or not rec_code:
         return "unknown", "Missing email or recovery code", None
 
     reset_url = (
@@ -479,8 +479,8 @@ def _verify_recovery_code_cloudscraper_sync(
         verify_resp = client.post(
             "https://account.live.com/API/Recovery/VerifyRecoveryCode",
             json={
-                "recoveryCode": recovery_code,
-                "code": recovery_code,
+                "recoveryCode": rec_code,
+                "code": rec_code,
                 "scid": scid,
                 "token": s_token,
                 "uaid": uaid,
@@ -537,7 +537,7 @@ def _verify_recovery_code_cloudscraper_sync(
 
 async def check_recovery_code_valid(
     email: str,
-    recovery_code: str,
+    rec_code: str,
 ) -> tuple[str, str | None]:
     """Read-only RC check for hold/pullback. Does not change credentials.
 
@@ -548,7 +548,7 @@ async def check_recovery_code_valid(
     status, reason, _ = await asyncio.to_thread(
         _verify_recovery_code_cloudscraper_sync,
         (email or "").strip(),
-        (recovery_code or "").strip(),
+        (rec_code or "").strip(),
         microsoft_proxy_url(),
     )
     return status, reason
@@ -556,7 +556,7 @@ async def check_recovery_code_valid(
 
 def _recover_cloudscraper_sync(
     email: str,
-    recovery_code: str,
+    rec_code: str,
     new_email: str,
     new_password: str,
     proxy_url: str | None = None,
@@ -572,7 +572,7 @@ def _recover_cloudscraper_sync(
 
     from authsecuring.utils.proxy import microsoft_proxy_url
 
-    recovery_code = (recovery_code or "").strip().upper().replace(" ", "")
+    rec_code = (rec_code or "").strip().upper().replace(" ", "")
     reset_url = (
         "https://account.live.com/ResetPassword.aspx"
         f"?wreply=https://login.live.com/oauth20_authorize.srf&mn={quote_plus(email)}"
@@ -628,8 +628,8 @@ def _recover_cloudscraper_sync(
     verify_resp = client.post(
         "https://account.live.com/API/Recovery/VerifyRecoveryCode",
         json={
-            "recoveryCode": recovery_code,
-            "code": recovery_code,
+            "recoveryCode": rec_code,
+            "code": rec_code,
             "scid": scid,
             "token": s_token,
             "uaid": uaid,
@@ -763,9 +763,9 @@ def _recover_cloudscraper_sync(
 
 
 async def recover(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     email: str,
-    recovery_code: str,
+    rec_code: str,
     new_email: str,
     new_password: str,
 ):
@@ -773,7 +773,7 @@ async def recover(
 
     Prefer cloudscraper (dona TLS fingerprint) on the same sticky residential
     proxy as login. Bare cloudscraper used the VPS IP and Microsoft stamped
-    that on password-change mail. Falls back to the httpx session path
+    that on password-change mail. Falls back to the httpx sesja path
     (also proxied) if RecoverUser 500s.
 
     Raises RecoverError for invalid recovery codes / known MS rejects.
@@ -781,8 +781,8 @@ async def recover(
     """
     from authsecuring.utils.proxy import microsoft_proxy_url
 
-    recovery_code = (recovery_code or "").strip().upper().replace(" ", "")
-    proxy_url = microsoft_proxy_url(session)
+    rec_code = (rec_code or "").strip().upper().replace(" ", "")
+    proxy_url = microsoft_proxy_url(sesja)
 
     # --- Primary: dona cloudscraper path (residential proxy, never VPS) ---
     try:
@@ -790,7 +790,7 @@ async def recover(
         cs_rc = await asyncio.to_thread(
             _recover_cloudscraper_sync,
             email,
-            recovery_code,
+            rec_code,
             new_email,
             new_password,
             proxy_url,
@@ -819,7 +819,7 @@ async def recover(
 
     # --- ResetPassword with retries (dona: 3x ServerData + token backoff) ---
     for attempt in range(1, 4):
-        data = await session.get(url=reset_url, follow_redirects=True)
+        data = await sesja.get(url=reset_url, follow_redirects=True)
         body_text = data.text or ""
         body_l = body_text.lower()
         logging.info(
@@ -872,7 +872,7 @@ async def recover(
         ):
             break
         await asyncio.sleep(token_try)
-        data = await session.get(url=reset_url, follow_redirects=True)
+        data = await sesja.get(url=reset_url, follow_redirects=True)
         body_text = data.text or ""
         if _html_says_account_missing(body_text):
             raise RecoverError(_ACCOUNT_MISSING_REASON, ms_code=1300)
@@ -920,7 +920,7 @@ async def recover(
         decoded_token = codecs.decode(unquote(raw_token), "unicode_escape")
 
     # --- VerifyRecoveryCode ---
-    rec_token = await session.post(
+    rec_token = await sesja.post(
         url="https://account.live.com/API/Recovery/VerifyRecoveryCode",
         headers={
             **MS_HEADERS,
@@ -929,8 +929,8 @@ async def recover(
             "canary": page_canary,
         },
         json={
-            "recoveryCode": recovery_code,
-            "code": recovery_code,
+            "recoveryCode": rec_code,
+            "code": rec_code,
             "scid": RECOVER_SCID,
             "token": decoded_token,
             "uaid": uaid,
@@ -968,7 +968,7 @@ async def recover(
     }
 
     async def _post_recover_user(canary: str, label: str) -> dict | None:
-        finish_secure = await session.post(
+        finish_secure = await sesja.post(
             url="https://account.live.com/API/Recovery/RecoverUser",
             headers={
                 **MS_HEADERS,
@@ -1008,13 +1008,13 @@ async def recover(
             raise RecoverError(
                 _MS_RECOVERY_CODE_ERRORS[6001],
                 ms_code=6001,
-                credentials_changed=False,
+                creds_moved=False,
             )
         if code_i in _MS_RECOVERY_CODE_ERRORS:
             raise RecoverError(
                 _MS_RECOVERY_CODE_ERRORS[code_i],
                 ms_code=code_i,
-                credentials_changed=False,
+                creds_moved=False,
             )
 
     logging.info(
@@ -1076,7 +1076,7 @@ async def recover(
         logging.info("RecoverUser proof-fallback starting for %s", email)
 
         canary = verify_canary or page_canary_for_recover
-        send_code = await session.post(
+        send_code = await sesja.post(
             url="https://account.live.com/api/Proofs/SendOtt",
             headers={**MS_HEADERS, "canary": canary},
             json={
@@ -1097,7 +1097,7 @@ async def recover(
                 "RecoverUser failed (Microsoft error 500) and SendOtt fallback also failed. "
                 "Original recovery code should still work — retry.",
                 ms_code=500,
-                credentials_changed=False,
+                creds_moved=False,
             )
 
         canary = response_json["apiCanary"]
@@ -1107,10 +1107,10 @@ async def recover(
                 "RecoverUser needs security-email OTP, but no code arrived. "
                 "Original recovery code should still work — retry.",
                 ms_code=500,
-                credentials_changed=False,
+                creds_moved=False,
             )
 
-        verify_code_response = await session.post(
+        verify_code_response = await sesja.post(
             url="https://account.live.com/API/Proofs/VerifyCode",
             headers={**MS_HEADERS, "canary": canary},
             json={
@@ -1128,7 +1128,7 @@ async def recover(
             raise RecoverError(
                 "RecoverUser OTP verify failed. Original recovery code should still work — retry.",
                 ms_code=500,
-                credentials_changed=False,
+                creds_moved=False,
             )
 
         canary = verify_json["apiCanary"]
@@ -1180,7 +1180,7 @@ async def recover(
             f"RecoverUser failed (Microsoft error {code_i or 'unknown'}). "
             "Original recovery code should still work — retry.",
             ms_code=code_i,
-            credentials_changed=False,
+            creds_moved=False,
         )
 
     logging.error("RecoverUser missing recoveryCode after retries: %s", last_json)
@@ -1251,10 +1251,10 @@ def _poll_email_otp_sync(
 
 
 def _find_security_email_proof(
-    proofs: list | None, security_email: str
+    proofs: list | None, sec_mail: str
 ) -> dict | None:
     """Pick the oProofList Email proof that matches our security email."""
-    email = (security_email or "").strip().lower()
+    email = (sec_mail or "").strip().lower()
     if not email or "@" not in email:
         return None
     local, _, domain = email.partition("@")
@@ -1301,7 +1301,7 @@ def _find_security_email_proof(
 
 def _reset_password_otp_cloudscraper_sync(
     email: str,
-    security_email: str,
+    sec_mail: str,
     new_password: str,
     proxy_url: str | None = None,
 ) -> bool:
@@ -1324,9 +1324,9 @@ def _reset_password_otp_cloudscraper_sync(
     from authsecuring.utils.proxy import microsoft_proxy_url
 
     email = (email or "").strip()
-    security_email = (security_email or "").strip()
+    sec_mail = (sec_mail or "").strip()
     new_password = (new_password or "").strip()
-    if not email or not security_email or not new_password:
+    if not email or not sec_mail or not new_password:
         return False
 
     reset_url = (
@@ -1361,11 +1361,11 @@ def _reset_password_otp_cloudscraper_sync(
     scid = int(server_data.get("iScenarioId") or RECOVER_SCID)
     page_token = _unquote(server_data["sRecoveryToken"])
 
-    proof = _find_security_email_proof(server_data.get("oProofList"), security_email)
+    proof = _find_security_email_proof(server_data.get("oProofList"), sec_mail)
     if not proof:
         logging.error(
             "otp-reset: no matching Email proof for %s on %s (proofs=%s)",
-            security_email,
+            sec_mail,
             email,
             [
                 {
@@ -1384,7 +1384,7 @@ def _reset_password_otp_cloudscraper_sync(
     requires_reentry = int(proof.get("requiresReentry") or 1)
     print(
         f"[~] - OTP ResetPassword via security email "
-        f"({proof.get('name') or security_email})"
+        f"({proof.get('name') or sec_mail})"
     )
 
     def _api_headers(canary: str) -> dict:
@@ -1401,7 +1401,7 @@ def _reset_password_otp_cloudscraper_sync(
 
     send_payload = {
         "associationType": "Proof",
-        "confirmProof": security_email,
+        "confirmProof": sec_mail,
         "epid": epid,
         "proofRequiredReentry": requires_reentry,
         "purpose": "RecoverUser",
@@ -1434,7 +1434,7 @@ def _reset_password_otp_cloudscraper_sync(
         api_canary = send_json["apiCanary"]
 
     # Sync DB poll (worker thread — no nested asyncio loop).
-    otp = _poll_email_otp_sync(security_email, timeout=90, since=ott_before)
+    otp = _poll_email_otp_sync(sec_mail, timeout=90, since=ott_before)
     if not otp:
         print("[X] - OTP ResetPassword: no security-email code arrived")
         return False
@@ -1442,7 +1442,7 @@ def _reset_password_otp_cloudscraper_sync(
 
     verify_payload = {
         "action": "OTC",
-        "confirmProof": security_email,
+        "confirmProof": sec_mail,
         "epid": epid,
         "proofRequiredReentry": requires_reentry,
         "purpose": "RecoverUser",
@@ -1533,7 +1533,7 @@ def _reset_password_otp_cloudscraper_sync(
 
 async def reset_password_via_security_email_otp(
     email: str,
-    security_email: str,
+    sec_mail: str,
     new_password: str,
     proxy_url: str | None = None,
 ) -> bool:
@@ -1545,7 +1545,7 @@ async def reset_password_via_security_email_otp(
         ok = await asyncio.to_thread(
             _reset_password_otp_cloudscraper_sync,
             email,
-            security_email,
+            sec_mail,
             new_password,
             proxy_url if proxy_url is not None else microsoft_proxy_url(),
         )

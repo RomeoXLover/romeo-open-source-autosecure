@@ -8,8 +8,8 @@ rom = logging.getLogger(__name__)
 
 
 async def _get_ssid_once(xbl: str) -> str | None:
-    async with httpx.AsyncClient(timeout=30.0) as session:
-        response = await session.post(
+    async with httpx.AsyncClient(timeout=30.0) as sesja:
+        response = await sesja.post(
             url="https://api.minecraftservices.com/authentication/login_with_xbox",
             json={
                 "identityToken": xbl,

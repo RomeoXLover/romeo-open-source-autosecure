@@ -138,11 +138,11 @@ def _api_error(data) -> str | None:
 
 
 async def _scrape_family_token(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     fallback: str | None,
 ) -> str | None:
     try:
-        page = await session.get(
+        page = await sesja.get(
             _FAMILY_HOME,
             headers={
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
@@ -165,11 +165,11 @@ async def _scrape_family_token(
 
 
 async def _get_roster(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     token: str,
 ) -> dict:
     try:
-        resp = await session.get(
+        resp = await sesja.get(
             _ROSTER_URL,
             headers=_family_headers(token, qos_root="Family.React.GetFamilyRoster"),
             follow_redirects=True,
@@ -192,14 +192,14 @@ async def _get_roster(
 
 
 async def _delete_member(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     token: str,
     remove_set: str,
 ) -> tuple[bool, str | None]:
     if not re.fullmatch(r"[A-Za-z0-9:._-]+", remove_set or ""):
         return False, "bad_remove_set"
     try:
-        resp = await session.delete(
+        resp = await sesja.delete(
             f"{_MEMBER_URL}?removeSet={remove_set}",
             headers=_family_headers(
                 token,
@@ -226,7 +226,7 @@ async def _delete_member(
 
 
 async def leave_family_group(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     *,
     home_token: str | None = None,
 ) -> dict:
@@ -238,13 +238,13 @@ async def leave_family_group(
         "remaining": None,
         "error": None,
     }
-    token = await _scrape_family_token(session, home_token)
+    token = await _scrape_family_token(sesja, home_token)
     if not token:
         print("[!] - Family leave skipped (no RequestVerificationToken)")
         empty["error"] = "no_token"
         return empty
 
-    roster = await _get_roster(session, token)
+    roster = await _get_roster(sesja, token)
     members = _members(roster)
     if not members:
         return {
@@ -277,7 +277,7 @@ async def leave_family_group(
             rs = _remove_set(member)
             if not rs:
                 continue
-            ok, err = await _delete_member(session, token, rs)
+            ok, err = await _delete_member(sesja, token, rs)
             if ok:
                 kicked += 1
                 role = _g(member, "role") or "member"
@@ -290,23 +290,23 @@ async def leave_family_group(
     left = False
     self_rs = _remove_set(self_m) if self_m else None
     if self_rs:
-        ok, err = await _delete_member(session, token, self_rs)
+        ok, err = await _delete_member(sesja, token, self_rs)
         if (not ok) and err == _LAST_ADMIN and not is_child:
             print("[!] - Last-admin leave blocked — retrying after kicking remaining")
-            roster2 = await _get_roster(session, token)
+            roster2 = await _get_roster(sesja, token)
             for member in _members(roster2):
                 if _is_self(member):
                     continue
                 rs = _remove_set(member)
                 if not rs:
                     continue
-                ok2, err2 = await _delete_member(session, token, rs)
+                ok2, err2 = await _delete_member(sesja, token, rs)
                 if ok2:
                     kicked += 1
                     print("[+] - Removed family member (retry)")
                 else:
                     last_err = err2
-            ok, err = await _delete_member(session, token, self_rs)
+            ok, err = await _delete_member(sesja, token, self_rs)
         if ok:
             left = True
             print("[+] - Left Microsoft Family")
@@ -318,7 +318,7 @@ async def leave_family_group(
         last_err = "no_self_puid"
         print("[X] - Family leave failed (no self puid on roster)")
 
-    remaining_raw = _members(await _get_roster(session, token))
+    remaining_raw = _members(await _get_roster(sesja, token))
     remaining = [_public_member(m) for m in remaining_raw]
     if remaining:
         print(f"[!] - Still in family after leave ({len(remaining)} member(s) remain)")

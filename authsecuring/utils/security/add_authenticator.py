@@ -7,9 +7,9 @@ import re
 rom = logging.getLogger(__name__)
 
 
-async def enroll_mfa(session: httpx.AsyncClient) -> str:
+async def enroll_mfa(sesja: httpx.AsyncClient) -> str:
     """Add Microsoft Authenticator TOTP proof and enable TFA. Returns secret key."""
-    proof_add = await session.get(
+    proof_add = await sesja.get(
         url="https://account.live.com/proofs/Add?mpsplit=2&apt=3&mkt=en-US"
     )
     body = proof_add.text or ""
@@ -46,7 +46,7 @@ async def enroll_mfa(session: httpx.AsyncClient) -> str:
     tcxt = json.loads(f'"{tcxt_m.group(1)}"')
 
     otp = await totp(secret_key)
-    verify = await session.post(
+    verify = await sesja.post(
         url="https://account.live.com/API/AddVerifyTotp",
         headers={
             "Accept": "application/json",
@@ -71,17 +71,17 @@ async def enroll_mfa(session: httpx.AsyncClient) -> str:
             (verify.text or "")[:200],
         )
 
-    default_url = await session.get(url="https://account.live.com/proofs/EnableTfa")
+    default_url = await sesja.get(url="https://account.live.com/proofs/EnableTfa")
     enable_body = default_url.text or ""
     enable_m = re.search(r'"EnableTfa"\s*:\s*"([^"]+)"', enable_body)
     if enable_m:
-        enable_2fa = enable_m.group(1)
+        add_mfa = enable_m.group(1)
         # Unescape JSON unicode if present
         try:
-            enable_2fa = json.loads(f'"{enable_2fa}"')
+            add_mfa = json.loads(f'"{add_mfa}"')
         except Exception:
             pass
-        await session.get(url=enable_2fa)
+        await sesja.get(url=add_mfa)
     else:
         # Some accounts already have TFA toggled after AddVerifyTotp
         rom.warning("EnableTfa link missing — secret may still be valid")

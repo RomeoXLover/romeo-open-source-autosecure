@@ -1,10 +1,10 @@
 import httpx
 import logging
 
-async def drop_2fa(session: httpx.AsyncClient, apicanary: str):
+async def drop_2fa(sesja: httpx.AsyncClient, canary: str):
     # Disables 2FA
     
-    remove = await session.post(
+    remove = await sesja.post(
         "https://account.live.com/API/Proofs/DisableTfa",
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -14,7 +14,7 @@ async def drop_2fa(session: httpx.AsyncClient, apicanary: str):
             "scid": "100109",
             "hpgid": "201030",
             "X-Requested-With": "XMLHttpRequest",          
-            "canary": apicanary
+            "canary": canary
         },
         json = {
             "uiflvr": 1001,

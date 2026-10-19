@@ -137,14 +137,14 @@ def _map_payment_transactions(data: dict | list) -> dict | None:
     return {"active": active, "canceled": canceled, "commercial": commercial}
 
 
-async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
+async def _via_msadelegate(sesja: httpx.AsyncClient) -> dict | None:
     from authsecuring.utils.cookies.get_msadelegate import get_msadelegate
 
-    token = await get_msadelegate(session)
+    token = await get_msadelegate(sesja)
     if not token:
         return None
     try:
-        resp = await session.get(
+        resp = await sesja.get(
             "https://paymentinstruments.mp.microsoft.com/v6.0/users/me/paymentTransactions",
             headers={
                 "Accept": "application/json, text/plain, */*",
@@ -180,22 +180,22 @@ async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
     return mapped
 
 
-async def fetch_subscriptions(session: httpx.AsyncClient, verification_token: str):
+async def fetch_subscriptions(sesja: httpx.AsyncClient, verification_token: str):
     # Prefer paymentinstruments (dona path); fall back to account.microsoft.com.
 
-    via_pi = await _via_msadelegate(session)
+    via_pi = await _via_msadelegate(sesja)
     if via_pi is not None:
         return via_pi
 
     try:
-        subscriptions = await session.get(
+        subscriptions = await sesja.get(
             "https://account.microsoft.com/services/api/subscriptions"
             "?excludeWindowsStoreInstallOptions=false"
             "&excludeLegacySubscriptions=true"
             "&isReact=true"
             "&includeCmsData=false",
             headers=build_amc_headers(
-                session,
+                sesja,
                 verification_token,
                 qos_root="GLOBAL.SERVICES.GETSUBSCRIPTIONS",
             ),

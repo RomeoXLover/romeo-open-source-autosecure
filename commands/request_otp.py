@@ -21,8 +21,8 @@ class requestOTP(commands.Cog):
 
         await ctx.defer(ephemeral=True)
 
-        async with httpx.AsyncClient(timeout=None) as session:
-            response = await send_auth(session, email)
+        async with httpx.AsyncClient(timeout=None) as sesja:
+            response = await send_auth(sesja, email)
 
         if "OtcLoginEligibleProofs" in response["Credentials"]:
             await ctx.followup.send(

@@ -119,14 +119,14 @@ async def check_cred_type(email: str) -> dict | None:
     except Exception:
         get_session = livedata = close_session = None  # type: ignore
 
-    session = None
+    sesja = None
     try:
         if get_session is None or livedata is None:
-            raise RuntimeError("session helpers unavailable")
-        session = open_session()
-        live = await livedata(session)
+            raise RuntimeError("sesja helpers unavailable")
+        sesja = open_session()
+        live = await livedata(sesja)
         flow = live.get("ppft") or live.get("sFT") or ""
-        resp = await session.post(
+        resp = await sesja.post(
             url="https://login.live.com/GetCredentialType.srf",
             headers={
                 "Accept": "application/json",
@@ -176,9 +176,9 @@ async def check_cred_type(email: str) -> dict | None:
         )
         return None
     finally:
-        if session is not None and close_session is not None:
+        if sesja is not None and close_session is not None:
             try:
-                await close_http(session)
+                await close_http(sesja)
             except Exception:
                 pass
 
@@ -197,7 +197,7 @@ def _usable_recovery_code(value: str | None) -> str | None:
 async def check_pullback_intact(
     email: str,
     *,
-    recovery_code: str | None = None,
+    rec_code: str | None = None,
     expected_security_email: str | None = None,
     domain: str | None = None,
 ) -> tuple[str, str | None]:
@@ -214,7 +214,7 @@ async def check_pullback_intact(
       bad      — RC invalid/missing AND security email gone/replaced (void)
       unknown  — inconclusive (retry later; do not void)
     """
-    rc = _usable_recovery_code(recovery_code)
+    rc = _usable_recovery_code(rec_code)
     rc_bad_reason: str | None = None
 
     if rc:
@@ -477,7 +477,7 @@ async def process_due_hold_checks(
             try:
                 status, reason = await check_pullback_intact(
                     email,
-                    recovery_code=stored_rc,
+                    rec_code=stored_rc,
                     expected_security_email=expected_sec,
                     domain=domain,
                 )

@@ -21,14 +21,14 @@ def _b64url_json(segment: str) -> dict | None:
         return None
 
 
-def jwt_to_owner(session: httpx.AsyncClient) -> dict:
+def jwt_to_owner(sesja: httpx.AsyncClient) -> dict:
     """Decode AMCSecAuthJWT claims into the personal-info shape we store.
 
     Live accounts often 401 on ``/profile/api/v1/personal-info`` even with a
     valid AMC JWT (MSAL silent bridge never finishes in httpx). The JWT itself
     already carries given_name / family_name / birthdate / ctry.
     """
-    raw = get_cookie(session, "AMCSecAuthJWT")
+    raw = get_cookie(sesja, "AMCSecAuthJWT")
     if not raw or raw.count(".") < 2:
         return {}
     payload = _b64url_json(raw.split(".")[1])

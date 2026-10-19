@@ -3,8 +3,8 @@ import logging
 import httpx
 
 
-async def fetch_amrp(session: httpx.AsyncClient, T: str | None) -> bool:
-    """Post the login ``t`` token to proofs/Add to establish AMRP session state.
+async def fetch_amrp(sesja: httpx.AsyncClient, T: str | None) -> bool:
+    """Post the login ``t`` token to proofs/Add to establish AMRP sesja state.
 
     Returns True if the post was attempted, False if skipped (no token).
     Failures are non-fatal — modern sessions often already have MSPAuth/WLSSC.
@@ -14,7 +14,7 @@ async def fetch_amrp(session: httpx.AsyncClient, T: str | None) -> bool:
         return False
 
     try:
-        await session.post(
+        await sesja.post(
             url="https://account.live.com/proofs/Add?apt=2&wa=wsignin1.0",
             data={"t": T},
             follow_redirects=False,

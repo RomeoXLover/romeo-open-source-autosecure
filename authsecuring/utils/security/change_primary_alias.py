@@ -91,9 +91,9 @@ def _tokens_from_html(html: str) -> dict[str, str | None]:
     }
 
 
-def _cookie_uaid(session: httpx.AsyncClient) -> str | None:
+def _cookie_uaid(sesja: httpx.AsyncClient) -> str | None:
     try:
-        raw = session.cookies.get("uaid")
+        raw = sesja.cookies.get("uaid")
     except Exception:
         raw = None
     if raw and re.fullmatch(r"[0-9a-f]{16,32}", str(raw), re.I):
@@ -225,14 +225,14 @@ def _auth_redirect_fields(html: str) -> tuple[str, str] | None:
     return None
 
 
-async def _submit_auth_redirect(session: httpx.AsyncClient, html: str) -> str | None:
+async def _submit_auth_redirect(sesja: httpx.AsyncClient, html: str) -> str | None:
     """POST OAuth continue form → account.live.com/auth/redirect. Returns new HTML or None."""
     pair = _auth_redirect_fields(html)
     if not pair:
         return None
     code, state = pair
     print("[~] - Submitting account.live.com/auth/redirect (OAuth MFA continue)…")
-    resp = await session.post(
+    resp = await sesja.post(
         "https://account.live.com/auth/redirect",
         data={"code": code, "state": state},
         headers={
@@ -244,9 +244,9 @@ async def _submit_auth_redirect(session: httpx.AsyncClient, html: str) -> str | 
     return resp.text or ""
 
 
-async def fetch_manage_page(session: httpx.AsyncClient) -> tuple[str, str | None, list[str]]:
+async def fetch_manage_page(sesja: httpx.AsyncClient) -> tuple[str, str | None, list[str]]:
     """GET names/manage → (html, canary, emails). Handles auth/redirect bounce once."""
-    resp = await session.get(
+    resp = await sesja.get(
         "https://account.live.com/names/manage",
         headers={
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -255,11 +255,11 @@ async def fetch_manage_page(session: httpx.AsyncClient) -> tuple[str, str | None
     )
     text = resp.text or ""
 
-    redirected = await _submit_auth_redirect(session, text)
+    redirected = await _submit_auth_redirect(sesja, text)
     if redirected is not None:
         text = redirected
         # Re-fetch manage after elevation
-        resp = await session.get(
+        resp = await sesja.get(
             "https://account.live.com/names/manage",
             headers={
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -267,10 +267,10 @@ async def fetch_manage_page(session: httpx.AsyncClient) -> tuple[str, str | None
             follow_redirects=True,
         )
         text = resp.text or ""
-        redirected2 = await _submit_auth_redirect(session, text)
+        redirected2 = await _submit_auth_redirect(sesja, text)
         if redirected2 is not None:
             text = redirected2
-            resp = await session.get(
+            resp = await sesja.get(
                 "https://account.live.com/names/manage",
                 headers={
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -282,7 +282,7 @@ async def fetch_manage_page(session: httpx.AsyncClient) -> tuple[str, str | None
     canary = _extract_canary(text) if _is_names_manage_html(text) else None
     if canary:
         try:
-            session.cookies.set("canary", canary, domain="account.live.com")
+            sesja.cookies.set("canary", canary, domain="account.live.com")
         except Exception:
             pass
     return text, canary, _emails_from_manage(text)
@@ -343,11 +343,11 @@ def _add_hard_failure(resp: httpx.Response) -> str | None:
 
 
 async def _add_outlook_alias(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     local: str,
     canary: str,
     *,
-    security_email: str | None = None,
+    sec_mail: str | None = None,
     account_email: str | None = None,
     password: str | None = None,
 ) -> bool:
@@ -355,7 +355,7 @@ async def _add_outlook_alias(
     full = f"{local}@outlook.com"
     # Match dona: PostOption=NONE, no query string, do not follow redirects
     # (success often lives in a 302 Location with alias=).
-    resp = await session.post(
+    resp = await sesja.post(
         "https://account.live.com/AddAssocId",
         headers={
             "Content-Type": "application/x-www-form-urlencoded",
@@ -389,26 +389,26 @@ async def _add_outlook_alias(
             or "acr_values" in loc
             or "mfa" in loc
         )
-        and security_email
+        and sec_mail
     ):
         print("[~] - AddAssocId redirected to MFA — elevating then retrying…")
-        followed = await session.get(
+        followed = await sesja.get(
             resp.headers.get("location") or loc,
             follow_redirects=True,
         )
         # Often lands on fmHF continue form with code+state → auth/redirect
         # (NOT an i5600 OTC page). Submit that first.
         body = followed.text or ""
-        redirected = await _submit_auth_redirect(session, body)
+        redirected = await _submit_auth_redirect(sesja, body)
         if redirected is not None:
             body = redirected
         else:
             # Genuine MFA challenge — try email OTC elevation
-            body = await _follow_post_auth_forms(session, body, str(followed.url))
+            body = await _follow_post_auth_forms(sesja, body, str(followed.url))
             html2, canary2, emails2 = await _elevate_for_names_manage(
-                session,
+                sesja,
                 body,
-                security_email=security_email,
+                sec_mail=sec_mail,
                 account_email=account_email,
                 password=password,
             )
@@ -420,12 +420,12 @@ async def _add_outlook_alias(
                 canary = canary2
 
         # After auth/redirect, refresh manage + retry AddAssocId
-        _, canary2, emails2 = await fetch_manage_page(session)
+        _, canary2, emails2 = await fetch_manage_page(sesja)
         if full.lower() in emails2:
             print(f"[+] - Added alias ({full}) — confirmed after auth/redirect")
             return True
         if canary2:
-            resp = await session.post(
+            resp = await sesja.post(
                 "https://account.live.com/AddAssocId",
                 headers={
                     "Content-Type": "application/x-www-form-urlencoded",
@@ -449,16 +449,16 @@ async def _add_outlook_alias(
             # One more auth/redirect hop if still bouncing
             loc2 = resp.headers.get("location") or ""
             if resp.status_code in (301, 302, 303) and loc2:
-                hop = await session.get(loc2, follow_redirects=True)
-                await _submit_auth_redirect(session, hop.text or "")
-                _, _, emails3 = await fetch_manage_page(session)
+                hop = await sesja.get(loc2, follow_redirects=True)
+                await _submit_auth_redirect(sesja, hop.text or "")
+                _, _, emails3 = await fetch_manage_page(sesja)
                 if full.lower() in emails3:
                     print(f"[+] - Added alias ({full}) — confirmed after 2nd auth/redirect")
                     return True
 
     # Always verify via names/manage — HTML error strings are noisy false positives
     # (old bug: "not available"/"can't add" in chrome → skip MakePrimary → delete alias).
-    _, _, emails = await fetch_manage_page(session)
+    _, _, emails = await fetch_manage_page(sesja)
     if full.lower() in emails:
         print(f"[+] - Added alias ({full}) — confirmed on names/manage")
         return True
@@ -511,7 +511,7 @@ async def _gct_exists(email: str) -> bool | None:
 
 
 async def confirm_primary_moved(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     new_full: str,
     old_email: str | None,
 ) -> bool:
@@ -529,7 +529,7 @@ async def confirm_primary_moved(
 
     try:
         await asyncio.sleep(1.0)
-        html, _, aliases = await fetch_manage_page(session)
+        html, _, aliases = await fetch_manage_page(sesja)
         aliases_l = {a.strip().lower() for a in aliases}
         member = _signin_name_from_manage(html)
         page_has_mp = bool(re.search(r"ShowMakePrimary\s*\(", html or "", re.I))
@@ -578,9 +578,9 @@ async def confirm_primary_moved(
 
 
 async def _make_primary(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     full: str,
-    apicanary: str,
+    canary: str,
     *,
     tcxt: str | None = None,
     uaid: str | None = None,
@@ -591,11 +591,11 @@ async def _make_primary(
     body (not ``application/json``), ``emailChecked=false``,
     ``removeOldPrimary=false``.
     """
-    if not (apicanary or "").strip():
+    if not (canary or "").strip():
         print(f"[X] - Failed to change primary alias ({full}) — no canary")
         return False
 
-    uaid = (uaid or _cookie_uaid(session) or "").strip() or None
+    uaid = (uaid or _cookie_uaid(sesja) or "").strip() or None
 
     payload: dict = {
         "aliasName": full,
@@ -612,7 +612,7 @@ async def _make_primary(
         "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "X-Requested-With": "XMLHttpRequest",
-        "canary": apicanary,
+        "canary": canary,
         "hpgid": _MAKE_PRIMARY_HPGID,
         "scid": _MAKE_PRIMARY_SCID,
         "uiflvr": _MAKE_PRIMARY_UIFLVR,
@@ -630,7 +630,7 @@ async def _make_primary(
         headers["tcxt"] = tcxt
 
     body = json.dumps(payload, separators=(",", ":"))
-    resp = await session.post(
+    resp = await sesja.post(
         "https://account.live.com/API/MakePrimary",
         headers=headers,
         content=body,
@@ -685,7 +685,7 @@ async def _make_primary(
     return True
 
 
-async def _follow_post_auth_forms(session: httpx.AsyncClient, text: str, url: str = "") -> str:
+async def _follow_post_auth_forms(sesja: httpx.AsyncClient, text: str, url: str = "") -> str:
     """Submit obvious SSO / continue forms after i5600 so cookies elevate."""
     from authsecuring.utils.security_information import (
         _extract_form_action,
@@ -699,14 +699,14 @@ async def _follow_post_auth_forms(session: httpx.AsyncClient, text: str, url: st
     current_url = url or ""
     for _ in range(8):
         # OAuth MFA continue → account.live.com/auth/redirect
-        redirected = await _submit_auth_redirect(session, current)
+        redirected = await _submit_auth_redirect(sesja, current)
         if redirected is not None:
             current = redirected
             current_url = "https://account.live.com/auth/redirect"
             continue
         moved = _object_moved_href(current)
         if moved:
-            r = await session.get(moved, follow_redirects=True)
+            r = await sesja.get(moved, follow_redirects=True)
             current, current_url = r.text or "", str(r.url)
             continue
         # Accrou / proofs skip
@@ -723,12 +723,12 @@ async def _follow_post_auth_forms(session: httpx.AsyncClient, text: str, url: st
         if skip and ("account.live.com" in skip or "login.live.com" in skip):
             # Prefer skip on Accrou/recover interrupts so we don't stick on t0-only pages
             if "recover" in current_url.lower() or "help us secure" in current.lower():
-                r = await session.get(skip, follow_redirects=True)
+                r = await sesja.get(skip, follow_redirects=True)
                 current, current_url = r.text or "", str(r.url)
                 continue
         sso, _missing = _sso_fields(current)
         if sso:
-            r = await session.post(
+            r = await sesja.post(
                 sso["action"],
                 data={
                     "pprid": sso["pprid"],
@@ -744,7 +744,7 @@ async def _follow_post_auth_forms(session: httpx.AsyncClient, text: str, url: st
         fields = _extract_hidden_fields(current)
         action = _extract_form_action(current, current_url)
         if action and "pprid" in fields and ("ipt" in fields or "NAP" in fields or "t" in fields):
-            r = await session.post(
+            r = await sesja.post(
                 action,
                 data=fields,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -760,10 +760,10 @@ async def _follow_post_auth_forms(session: httpx.AsyncClient, text: str, url: st
 
 
 async def _elevate_for_names_manage(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     html: str,
     *,
-    security_email: str | None,
+    sec_mail: str | None,
     account_email: str | None,
     password: str | None,
 ) -> tuple[str, str | None, list[str]]:
@@ -785,7 +785,7 @@ async def _elevate_for_names_manage(
 
     text = html or ""
     # Always chase continue / recover forms first
-    text = await _follow_post_auth_forms(session, text, "")
+    text = await _follow_post_auth_forms(sesja, text, "")
     canary = _extract_canary(text) if _is_names_manage_html(text) else None
     if canary and _is_names_manage_html(text):
         return text, canary, _emails_from_manage(text)
@@ -806,9 +806,9 @@ async def _elevate_for_names_manage(
 
     if not needs_i5600 and not needs_oauth:
         # Re-hit manage after form chasing
-        return await fetch_manage_page(session)
+        return await fetch_manage_page(sesja)
 
-    if not security_email or security_email in ("Couldn't Change!", "Unknown"):
+    if not sec_mail or sec_mail in ("Couldn't Change!", "Unknown"):
         print("[X] - names/manage blocked by SA elevation and no security email")
         return text, None, _emails_from_manage(text)
 
@@ -816,9 +816,9 @@ async def _elevate_for_names_manage(
     # Do NOT password-first: posting login_pwd on i5600 burns sFT and
     # GetOneTimeCode then returns State 203. Send security-email OTP first.
     resp = await _complete_i5600_email_otc(
-        session,
+        sesja,
         text,
-        security_email=security_email,
+        sec_mail=sec_mail,
         account_email=account_email,
         password=password,
         wait_slices=(40.0, 50.0),
@@ -826,19 +826,19 @@ async def _elevate_for_names_manage(
         try_password_first=False,
     )
     if resp is None:
-        print("[X] - Failed to elevate session for names/manage")
+        print("[X] - Failed to elevate sesja for names/manage")
         return text, None, _emails_from_manage(text)
 
-    await _follow_post_auth_forms(session, resp.text or "", str(getattr(resp, "url", "")))
-    return await fetch_manage_page(session)
+    await _follow_post_auth_forms(sesja, resp.text or "", str(getattr(resp, "url", "")))
+    return await fetch_manage_page(sesja)
 
 
 async def promote_alias(
-    session: httpx.AsyncClient,
+    sesja: httpx.AsyncClient,
     email: str,
-    apicanary: str,
+    canary: str,
     *,
-    security_email: str | None = None,
+    sec_mail: str | None = None,
     account_email: str | None = None,
     password: str | None = None,
 ) -> bool:
@@ -853,16 +853,16 @@ async def promote_alias(
     full = f"{local}@outlook.com"
 
     try:
-        if not apicanary:
-            print(f"[X] - Failed to change primary alias ({full}) — no apicanary")
+        if not canary:
+            print(f"[X] - Failed to change primary alias ({full}) — no canary")
             return False
 
-        html, canary, before = await fetch_manage_page(session)
+        html, canary, before = await fetch_manage_page(sesja)
         if not canary or not _is_names_manage_html(html):
             html, canary, before = await _elevate_for_names_manage(
-                session,
+                sesja,
                 html,
-                security_email=security_email,
+                sec_mail=sec_mail,
                 account_email=(
                     account_email
                     or (before[0] if before else None)
@@ -872,7 +872,7 @@ async def promote_alias(
 
         if not canary:
             # Fallback: try AddAssocId page canary (legacy path) after elevation
-            add_page = await session.get(
+            add_page = await sesja.get(
                 "https://account.live.com/AddAssocId",
                 headers={
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
@@ -916,24 +916,24 @@ async def promote_alias(
             print(f"[~] - Alias already present ({full}) — promoting")
         else:
             added = await _add_outlook_alias(
-                session,
+                sesja,
                 local,
                 canary,
-                security_email=security_email,
+                sec_mail=sec_mail,
                 account_email=account_email,
                 password=password,
             )
             if not added:
                 # One retry with a fresh manage canary
-                _, canary2, emails2 = await fetch_manage_page(session)
+                _, canary2, emails2 = await fetch_manage_page(sesja)
                 if full.lower() in emails2:
                     print(f"[+] - Alias present after add attempt ({full})")
                 elif canary2:
                     added = await _add_outlook_alias(
-                        session,
+                        sesja,
                         local,
                         canary2,
-                        security_email=security_email,
+                        sec_mail=sec_mail,
                         account_email=account_email,
                         password=password,
                     )
@@ -943,17 +943,17 @@ async def promote_alias(
                     return False
 
         # MakePrimary often flakes right after AddAssocId MFA (stale canary /
-        # session). Retry promote with a fresh *names/manage* apiCanary —
+        # sesja). Retry promote with a fresh *names/manage* apiCanary —
         # password/reset canary is a different page and will 1086 the XHR.
         ok = False
         for promo_try in range(1, 4):
             tokens: dict[str, str | None] = {}
             try:
-                html_m, manage_canary, on_manage = await fetch_manage_page(session)
+                html_m, manage_canary, on_manage = await fetch_manage_page(sesja)
                 tokens = _tokens_from_html(html_m)
-                api_canary = tokens.get("api_canary") or manage_canary or apicanary
+                api_canary = tokens.get("api_canary") or manage_canary or canary
                 if api_canary:
-                    apicanary = api_canary
+                    canary = api_canary
                 if full.lower() not in [e.lower() for e in on_manage]:
                     if promo_try == 1:
                         print(f"[X] - Alias missing before MakePrimary ({full})")
@@ -963,25 +963,25 @@ async def promote_alias(
 
             print(f"[~] - MakePrimary attempt {promo_try}/3 ({full})")
             ok = await _make_primary(
-                session,
+                sesja,
                 full,
-                apicanary,
+                canary,
                 tcxt=tokens.get("tcxt"),
-                uaid=tokens.get("uaid") or _cookie_uaid(session),
+                uaid=tokens.get("uaid") or _cookie_uaid(sesja),
             )
             if ok:
                 break
-            if await confirm_primary_moved(session, full, account_email):
+            if await confirm_primary_moved(sesja, full, account_email):
                 return True
             await asyncio.sleep(1.5 * promo_try)
 
         # Final ground-truth — never trust MakePrimary JSON alone (sale2026025 case:
         # API reported fail, old Outlook deleted, sunny* became the only login).
-        if await confirm_primary_moved(session, full, account_email):
+        if await confirm_primary_moved(sesja, full, account_email):
             return True
 
         if ok:
-            _, _, after = await fetch_manage_page(session)
+            _, _, after = await fetch_manage_page(sesja)
             if full.lower() in {a.lower() for a in after}:
                 return True
             logger.warning(
@@ -998,7 +998,7 @@ async def promote_alias(
         logger.exception("Error changing primary alias: %s", e)
         # Last-chance: MakePrimary may have thrown after MS already switched
         try:
-            if await confirm_primary_moved(session, full, account_email):
+            if await confirm_primary_moved(sesja, full, account_email):
                 return True
         except Exception:
             pass

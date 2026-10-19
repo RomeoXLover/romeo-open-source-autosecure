@@ -14,7 +14,7 @@ from typing import Any
 
 import httpx
 
-logger = logging.getLogger("bot")
+logger = logging.getLogger("romeo")
 
 CHECK_JS = Path(__file__).resolve().parent / "ban_check" / "check.js"
 NODE = os.environ.get("NODE_BIN", "node")
@@ -52,7 +52,7 @@ def _coldproxy_line(cfg: dict | None = None) -> str | None:
     port_max = int(cp.get("port_max") or 34999)
     ssid = random.randint(min(port_min, port_max), max(port_min, port_max))
     user = user_tmpl.replace("{ssid}", str(ssid))
-    # ColdProxy uses gateway port == session id
+    # ColdProxy uses gateway port == sesja id
     return f"{host}:{ssid}:{user}:{password}"
 
 
@@ -387,7 +387,7 @@ async def run_ban_sweep(account: dict) -> str | None:
                 "profile fetch",
                 "cannot join",
                 "missing --host",
-                "missing minecraft session",
+                "missing minecraft sesja",
                 "unauthorized login",
                 "possible unauthorized",
                 "discord",

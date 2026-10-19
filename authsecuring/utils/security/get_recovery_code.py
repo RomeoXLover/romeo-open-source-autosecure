@@ -6,9 +6,9 @@ import httpx
 import json
 import re
 
-async def generate_code(session: httpx.AsyncClient, apicanary: str,  eni: str) -> dict:
+async def generate_code(sesja: httpx.AsyncClient, canary: str,  eni: str) -> dict:
 
-    data = await session.post(
+    data = await sesja.post(
         url = "https://account.live.com/API/Proofs/GenerateRecoveryCode",
         headers = {
             "host": "account.live.com",
@@ -26,7 +26,7 @@ async def generate_code(session: httpx.AsyncClient, apicanary: str,  eni: str) -
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
-            "canary": apicanary
+            "canary": canary
         },
         json = {
             "encryptedNetId": eni,
@@ -41,15 +41,15 @@ async def generate_code(session: httpx.AsyncClient, apicanary: str,  eni: str) -
 
     return response
 
-async def mint_recovery(session: httpx.AsyncClient, apicanary: str, eni: str):
+async def mint_recovery(sesja: httpx.AsyncClient, canary: str, eni: str):
     # Generates a new recovery code
-    response = await generate_code(session, apicanary, eni)
+    response = await generate_code(sesja, canary, eni)
 
     # Missing alias verification
     if "error" in response and str(response["error"].get("code")) == "500":
         print("[~] - Verifying security email")
         
-        security_info = await session.get("https://account.live.com/proofs/Manage/additional")
+        security_info = await sesja.get("https://account.live.com/proofs/Manage/additional")
 
         canary = re.sub(
             r'\\u([0-9A-Fa-f]{4})',
@@ -66,7 +66,7 @@ async def mint_recovery(session: httpx.AsyncClient, apicanary: str, eni: str):
         email = proof["displayProofName"].replace("\u0040", "@")
 
         # Send verify otp
-        await session.post(
+        await sesja.post(
             url = "https://account.live.com/API/Proofs/SendOtt",
             headers = {
                 "Accept": "application/json",
@@ -90,7 +90,7 @@ async def mint_recovery(session: httpx.AsyncClient, apicanary: str, eni: str):
         code = await fetch_otp(email)
 
         # Verify mail
-        await session.post(
+        await sesja.post(
             url = "https://account.live.com/API/Proofs/VerifyCode",
             headers = {
                 "Accept": "application/json",
@@ -108,7 +108,7 @@ async def mint_recovery(session: httpx.AsyncClient, apicanary: str, eni: str):
             }
         )
 
-        response = await generate_code(session, canary, eni)
+        response = await generate_code(sesja, canary, eni)
 
     code = response.get("recoveryCode")
     if not code:

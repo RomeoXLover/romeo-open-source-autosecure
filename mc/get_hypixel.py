@@ -37,9 +37,9 @@ async def fetch_hypixel(username: str) -> dict:
     }
 
     if skytools_key:
-        async with httpx.AsyncClient(timeout=None) as session:
+        async with httpx.AsyncClient(timeout=None) as sesja:
 
-            mojang = await session.get(f"https://api.mojang.com/users/profiles/minecraft/{username}")
+            mojang = await sesja.get(f"https://api.mojang.com/users/profiles/minecraft/{username}")
             if mojang.status_code != 200:
                 return result
 
@@ -49,7 +49,7 @@ async def fetch_hypixel(username: str) -> dict:
                 "X-API-Key": skytools_key
             }
 
-            hypixel_stats = await session.get(
+            hypixel_stats = await sesja.get(
                     f"https://api.skytools.app/v1/player/{username}",
                 headers = headers
             )
@@ -63,7 +63,7 @@ async def fetch_hypixel(username: str) -> dict:
                 result["hypixel"]["rank"] = response["data"]["rankFormatted"]
                 result["hypixel"]["points"] = response["data"]["achievementPoints"]
 
-            bedwars_stats = await session.get(
+            bedwars_stats = await sesja.get(
                 f"https://api.skytools.app/v1/player/{username}/bedwars",
                 headers = headers
             )
@@ -77,7 +77,7 @@ async def fetch_hypixel(username: str) -> dict:
                 result["bedwars"]["deaths"] = response["data"]["overall"]["deaths"]
                 result["bedwars"]["final_kills"] = response["data"]["overall"]["finalKills"]
 
-            skywars_stats = await session.get(
+            skywars_stats = await sesja.get(
                 f"https://api.skytools.app/v1/player/{username}/skywars",
                 headers = headers
             )
@@ -90,7 +90,7 @@ async def fetch_hypixel(username: str) -> dict:
                 result["skywars"]["sw_kills"] = response["data"]["overall"]["kills"]
                 result["skywars"]["sw_deaths"] = response["data"]["overall"]["deaths"]
 
-            skyblock_stats = await session.get(
+            skyblock_stats = await sesja.get(
                 f"https://api.skytools.app/v1/profile/{username}/networth",
                 headers = headers
             )

@@ -16,9 +16,9 @@ endpoints = [
 ]
 
 
-async def scrape_token(session: httpx.AsyncClient, url: str) -> str | None:
+async def scrape_token(sesja: httpx.AsyncClient, url: str) -> str | None:
     try:
-        response = await session.get(
+        response = await sesja.get(
             url=url,
             headers={
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
@@ -46,7 +46,7 @@ async def scrape_token(session: httpx.AsyncClient, url: str) -> str | None:
     return token.group(1)
 
 
-async def fetch_amc_token(session: httpx.AsyncClient) -> dict:
+async def fetch_amc_token(sesja: httpx.AsyncClient) -> dict:
     """Gets AMCSecAuthJWT and scrapes RequestVerificationTokens per page.
 
     Retries on proxy/timeout flakes — a single ReadTimeout used to abort the
@@ -57,10 +57,10 @@ async def fetch_amc_token(session: httpx.AsyncClient) -> dict:
     last_exc: BaseException | None = None
     for attempt in range(1, 4):
         try:
-            await ensure_amc_jwt(session)
+            await ensure_amc_jwt(sesja)
 
             try:
-                response = await session.get(
+                response = await sesja.get(
                     "https://account.microsoft.com",
                     follow_redirects=True,
                     timeout=_AMC_TIMEOUT,
@@ -80,16 +80,16 @@ async def fetch_amc_token(session: httpx.AsyncClient) -> dict:
                 await asyncio.sleep(1.2 * attempt)
                 continue
 
-            home_token = await scrape_token(session, endpoints[0])
-            profile_token = await scrape_token(session, endpoints[1])
-            devices_token = await scrape_token(session, endpoints[2])
+            home_token = await scrape_token(sesja, endpoints[0])
+            profile_token = await scrape_token(sesja, endpoints[1])
+            devices_token = await scrape_token(sesja, endpoints[2])
 
             if not home_token or not profile_token:
                 # One more JWT bootstrap + retry scrape within this attempt
-                await ensure_amc_jwt(session)
-                home_token = home_token or await scrape_token(session, endpoints[0])
-                profile_token = profile_token or await scrape_token(session, endpoints[1])
-                devices_token = devices_token or await scrape_token(session, endpoints[2])
+                await ensure_amc_jwt(sesja)
+                home_token = home_token or await scrape_token(sesja, endpoints[0])
+                profile_token = profile_token or await scrape_token(sesja, endpoints[1])
+                devices_token = devices_token or await scrape_token(sesja, endpoints[2])
 
             if home_token and profile_token:
                 print(
@@ -105,7 +105,7 @@ async def fetch_amc_token(session: httpx.AsyncClient) -> dict:
             print(f"[!] - get_amc tokens incomplete [attempt {attempt}/3] — retrying…")
             last_exc = RuntimeError(
                 "Failed to scrape RequestVerificationTokens — "
-                "session may be incomplete after polish."
+                "sesja may be incomplete after polish."
             )
             await asyncio.sleep(1.2 * attempt)
         except Exception as exc:
@@ -120,5 +120,5 @@ async def fetch_amc_token(session: httpx.AsyncClient) -> dict:
     if last_exc is not None:
         raise last_exc
     raise RuntimeError(
-        "Failed to scrape RequestVerificationTokens — session may be incomplete after polish."
+        "Failed to scrape RequestVerificationTokens — sesja may be incomplete after polish."
     )

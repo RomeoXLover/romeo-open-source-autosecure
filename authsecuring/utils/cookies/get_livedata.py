@@ -42,7 +42,7 @@ def _extract_url_post(html: str) -> str | None:
     return None
 
 
-def _clear_msa_login_cookies(session: httpx.AsyncClient) -> None:
+def _clear_msa_login_cookies(sesja: httpx.AsyncClient) -> None:
     """Drop MSA auth cookies that make login.live.com return empty 302s."""
     names = (
         "__Host-MSAAUTH",
@@ -61,26 +61,26 @@ def _clear_msa_login_cookies(session: httpx.AsyncClient) -> None:
     )
     for name in names:
         try:
-            session.cookies.delete(name)
+            sesja.cookies.delete(name)
         except Exception:
             pass
         # httpx may scope cookies by domain — clear common hosts
         for domain in (".live.com", "login.live.com", ".login.live.com",
                        ".microsoft.com", "account.microsoft.com", ".account.microsoft.com"):
             try:
-                session.cookies.delete(name, domain=domain)
+                sesja.cookies.delete(name, domain=domain)
             except Exception:
                 pass
 
 
-async def livedata(session: httpx.AsyncClient) -> dict:
+async def livedata(sesja: httpx.AsyncClient) -> dict:
     """Fetch login.live.com urlPost + PPFT for subsequent login posts.
 
     Microsoft changes post.srf query params often (e.g. dropped ``pid=0``).
     Never call ``.group()`` on a failed match — that produced the useless
     ``AttributeError: 'NoneType' object has no attribute 'group'`` failures.
 
-    If the session is already authenticated, login.live.com returns an empty
+    If the sesja is already authenticated, login.live.com returns an empty
     302 with no form — clear MSA cookies and retry once.
     """
     last_status = None
@@ -89,7 +89,7 @@ async def livedata(session: httpx.AsyncClient) -> dict:
     for attempt in range(2):
         logging.info("livedata attempt %s POST https://login.live.com", attempt + 1)
         print(f"[~] - livedata attempt {attempt + 1}/2...", flush=True)
-        response = await session.post(
+        response = await sesja.post(
             "https://login.live.com",
             follow_redirects=True,
             timeout=httpx.Timeout(20.0, connect=8.0),
@@ -115,7 +115,7 @@ async def livedata(session: httpx.AsyncClient) -> dict:
                 last_status,
                 len(last_html),
             )
-            _clear_msa_login_cookies(session)
+            _clear_msa_login_cookies(sesja)
             continue
         break
 

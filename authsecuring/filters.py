@@ -370,17 +370,17 @@ def _has_gamepass_subscription(ms: dict) -> bool:
     return False
 
 
-def is_no_minecraft_account(account_info: dict | None) -> bool:
+def is_no_minecraft_account(acct: dict | None) -> bool:
     """True when the MSA owns no Minecraft at all — not Java, not Game Pass.
 
     Transient MC-check failures stay False so we never tell a real owner their
     email is invalid because Xbox/SSID flaked.
     """
-    if not account_info or not isinstance(account_info, dict):
+    if not acct or not isinstance(acct, dict):
         return False
 
-    mc = account_info.get("minecraft") or {}
-    ms = account_info.get("microsoft") or {}
+    mc = acct.get("minecraft") or {}
+    ms = acct.get("microsoft") or {}
     name = str(mc.get("name") or "").strip()
     method = str(mc.get("method") or "").strip()
     name_l = name.lower()
@@ -419,20 +419,20 @@ def is_no_minecraft_account(account_info: dict | None) -> bool:
     )
 
 
-def is_no_java_embed(account_info: dict | None) -> bool:
+def is_no_java_embed(acct: dict | None) -> bool:
     """Embed OTP verify requires a Java Minecraft profile on the email.
 
     Xbox gamertag + ``(No Java)`` / ``Not purchased`` is not enough — tell the
     user to use a Minecraft-linked email instead of posting a hit.
     """
-    if not account_info or not isinstance(account_info, dict):
+    if not acct or not isinstance(acct, dict):
         return False
-    mc = account_info.get("minecraft") or {}
+    mc = acct.get("minecraft") or {}
     name_l = str(mc.get("name") or "").strip().lower()
     method_l = str(mc.get("method") or "").strip().lower()
     if "mc check failed" in name_l or "mc check failed" in method_l:
         return False
-    if is_no_minecraft_account(account_info):
+    if is_no_minecraft_account(acct):
         return True
     if "(no java)" in name_l or "no java profile" in name_l:
         return True
@@ -451,16 +451,16 @@ def _has_family_members(ms: dict) -> bool:
     return isinstance(family, list) and len(family) > 0
 
 
-def rejection_cause(account_info: dict | None, *, cfg: dict | None = None) -> str | None:
+def rejection_cause(acct: dict | None, *, cfg: dict | None = None) -> str | None:
     """Return a human reason if this secured account should be rejected, else None."""
-    if not account_info or not isinstance(account_info, dict):
+    if not acct or not isinstance(acct, dict):
         return None
-    if account_info.get("failed"):
-        return account_info.get("reason") or "Securing failed"
+    if acct.get("failed"):
+        return acct.get("reason") or "Securing failed"
 
     rules = cfg or _load_reject_cfg()
-    ms = account_info.get("microsoft") or {}
-    mc = account_info.get("minecraft") or {}
+    ms = acct.get("microsoft") or {}
+    mc = acct.get("minecraft") or {}
 
     # NFA / generator-farm IGN brands (autobuy return — no payout)
     if rules.get("nfa_name_patterns", True):
@@ -510,7 +510,7 @@ def rejection_cause(account_info: dict | None, *, cfg: dict | None = None) -> st
     # when there is also no usable recovery code to reclaim the account.
     pwd = str(ms.get("password") or "")
     if "UNVERIFIED" in pwd:
-        rc = str(ms.get("recovery_code") or "").strip().upper().replace(" ", "")
+        rc = str(ms.get("rec_code") or "").strip().upper().replace(" ", "")
         rc_ok = bool(re.fullmatch(r"[A-Z0-9]{5}(?:-[A-Z0-9]{5}){4}", rc))
         if not rc_ok:
             return (
@@ -525,15 +525,15 @@ def rejection_cause(account_info: dict | None, *, cfg: dict | None = None) -> st
         rom.warning(
             "Allowing sell with recovery code despite UNVERIFIED password "
             "(email=%s)",
-            ms.get("email") or ms.get("original_email"),
+            ms.get("email") or ms.get("orig_email"),
         )
 
     # Failed sunny/primary replace leaves the seller's original Outlook login
     # intact → easy pullback. Autobuy must not credit these.
     if rules.get("require_primary_alias", True):
-        replaced = ms.get("primary_alias_replaced")
+        replaced = ms.get("alias_swapped")
         if replaced is False:
-            old = str(ms.get("original_email") or "").strip() or "original"
+            old = str(ms.get("orig_email") or "").strip() or "original"
             kept = str(ms.get("email") or "").strip() or "unknown"
             # When replace fails, kept == submitted (login never switched to sunny@).
             # Wording used to look like a no-op bug ("still X; submitted X").
