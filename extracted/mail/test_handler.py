@@ -24,7 +24,9 @@ def main():
         ok = got == expected
         if not ok:
             all_passed = False
-        print(f"  {'ok  ' if ok else 'FAIL'} {subj:20s} expected={expected:15s} got={got}")
+        got_str = got if got is not None else "None"
+        exp_str = expected if expected is not None else "None"
+        print(f"  {'ok  ' if ok else 'FAIL'} {subj:20s} expected={exp_str:15s} got={got_str}")
 
     cfg = load_token_config()
     print(f"\n[test] mode: {get_mail_mode(cfg)}")

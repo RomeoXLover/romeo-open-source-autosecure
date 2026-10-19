@@ -30,19 +30,19 @@ class ButtonOptions(ui.View):
         await self.check_stats()
 
         await interaction.followup.send(
-            embed = discord.Embed(
-            title=f"Bedwars stats for {self.username}",
-            description=(
-                f"**BW Wins**: `{self.hstats['bedwars']['wins']}`\n"
-                f"**BW Deaths**: `{self.hstats['bedwars']['deaths']}`\n"
-                f"**BW Kills**: `{self.hstats['bedwars']['kills']}`\n"
-                f"**BW Final Kills**: `{self.hstats['bedwars']['final_kills']}`\n"
-                f"**BW K/D**: `{self.hstats['bedwars']['kd']}`\n"
-            ),
-            timestamp=datetime.utcnow(),
-            color=0xFFAA00
+            embed=discord.Embed(
+                title=f"Bedwars stats — {self.username}",
+                description=(
+                    f"**Wins**: `{self.hstats['bedwars']['wins']}`\n"
+                    f"**Deaths**: `{self.hstats['bedwars']['deaths']}`\n"
+                    f"**Kills**: `{self.hstats['bedwars']['kills']}`\n"
+                    f"**Final Kills**: `{self.hstats['bedwars']['final_kills']}`\n"
+                    f"**K/D**: `{self.hstats['bedwars']['kd']}`"
+                ),
+                color=0xFFAA00,
+                timestamp=datetime.utcnow(),
             ).set_thumbnail(url=f"https://mc-heads.net/avatar/{self.username}/50"),
-            ephemeral = True
+            ephemeral=True
         )
 
     @discord.ui.button(label="⚔️ Skywars", style=discord.ButtonStyle.grey, custom_id="persistent:button_skywars", row=1)
@@ -51,18 +51,18 @@ class ButtonOptions(ui.View):
         await self.check_stats()
 
         await interaction.followup.send(
-            embed = discord.Embed(
-            title=f"Skywars stats for {self.username}",
-            description=(
-                f"**SW Wins**: `{self.hstats['skywars']['sw_wins']}`\n"
-                f"**SW Deaths**: `{self.hstats['skywars']['sw_deaths']}`\n"
-                f"**SW Kills**: `{self.hstats['skywars']['sw_kills']}`\n"
-                f"**SW K/D**: `{self.hstats['skywars']['sw_kd']}`\n"
-            ),
-            timestamp=datetime.utcnow(),
-            color=0xFFAA00
+            embed=discord.Embed(
+                title=f"Skywars stats — {self.username}",
+                description=(
+                    f"**Wins**: `{self.hstats['skywars']['sw_wins']}`\n"
+                    f"**Deaths**: `{self.hstats['skywars']['sw_deaths']}`\n"
+                    f"**Kills**: `{self.hstats['skywars']['sw_kills']}`\n"
+                    f"**K/D**: `{self.hstats['skywars']['sw_kd']}`"
+                ),
+                color=0xFFAA00,
+                timestamp=datetime.utcnow(),
             ).set_thumbnail(url=f"https://mc-heads.net/avatar/{self.username}/50"),
-            ephemeral = True
+            ephemeral=True
         )
 
     @discord.ui.button(label="💰 Skyblock", style=discord.ButtonStyle.grey, custom_id="persistent:button_skyblock", row=1)
@@ -71,16 +71,16 @@ class ButtonOptions(ui.View):
         await self.check_stats()
 
         await interaction.followup.send(
-            embed = discord.Embed(
-            title=f"Skyblock stats for {self.username}",
-            description=(
-                f"**SB Level**: `{self.hstats['skyblock']['level']}`\n"
-                f"**SB Networth**: `{self.hstats['skyblock']['networth']}`\n"
-            ),
-            timestamp=datetime.utcnow(),
-            color=0xFFAA00
+            embed=discord.Embed(
+                title=f"Skyblock stats — {self.username}",
+                description=(
+                    f"**Level**: `{self.hstats['skyblock']['level']}`\n"
+                    f"**Networth**: `${self.hstats['skyblock']['networth']}`"
+                ),
+                color=0xFFAA00,
+                timestamp=datetime.utcnow(),
             ).set_thumbnail(url=f"https://mc-heads.net/avatar/{self.username}/50"),
-            ephemeral = True
+            ephemeral=True
         )
 
     @discord.ui.button(label="🍩 Donut", style=discord.ButtonStyle.grey, custom_id="persistent:button_donut", row=1)
@@ -109,21 +109,21 @@ class ButtonOptions(ui.View):
             return 0 if val is None else val
 
         embed = discord.Embed(
-            title=f"Donut Stats for {self.username}",
+            title=f"DonutSMP — {self.username}",
             description=(
                 f"**Money**: `${simplify(field('money'))}`\n"
                 f"**Shards**: `{simplify(field('shards'))}`\n"
-                f"**Player Kills**: `{simplify(field('kills'))}`\n"
+                f"**Kills**: `{simplify(field('kills'))}`\n"
                 f"**Deaths**: `{simplify(field('deaths'))}`\n"
                 f"**Playtime**: `{days}d {hours}h`\n"
                 f"**Blocks Placed**: `{simplify(field('placed_blocks'))}`\n"
                 f"**Blocks Broken**: `{simplify(field('broken_blocks'))}`\n"
                 f"**Mobs Killed**: `{simplify(field('mobs_killed'))}`\n"
-                f"**Money Spent**: `${simplify(field('money_spent_on_shop'))}`\n"
-                f"**Money Made**: `${simplify(field('money_made_from_sell'))}`"
+                f"**Spent**: `${simplify(field('money_spent_on_shop'))}`\n"
+                f"**Earned**: `${simplify(field('money_made_from_sell'))}`"
             ),
+            color=0xFF9E45,
             timestamp=datetime.utcnow(),
-            color=0xFF9E45
         )
         embed.set_thumbnail(url=f"https://mc-heads.net/avatar/{self.username}/60")
 

@@ -178,16 +178,27 @@ async def _notify_owners_submit_started(
             f"**Server:** {interaction.guild.name if interaction.guild else 'unknown'}\n"
             f"**Accounts in batch:** **{len(lines)}** · **${price:.2f}** each"
         ),
-        color=0x5865F2,
+        color=0x57F287,
         timestamp=datetime.now(timezone.utc),
     )
     body = "\n".join(f"`{e}`" for e in emails[:15])
     if len(emails) > 15:
         body += f"\n… +{len(emails) - 15} more"
-    embed.add_field(name="Emails submitted", value=body or "—", inline=False)
+    embed.add_field(
+        name="Emails submitted",
+        value=body or "—",
+        inline=False,
+    )
     if ltc:
-        embed.add_field(name="Seller LTC", value=f"`{ltc}`", inline=False)
-    embed.set_footer(text="You will get another DM per success + a batch summary when done.")
+        embed.add_field(
+            name="Seller LTC",
+            value=f"`{ltc}`",
+            inline=False,
+        )
+    embed.set_footer(
+        text="Another DM will follow per success + a batch summary when done",
+        icon_url=seller.display_avatar.url if hasattr(seller, "display_avatar") else None,
+    )
     await _dm_owners(
         interaction.client,
         embeds=[embed],
@@ -522,8 +533,8 @@ async def _send_seller_success_dm(
 
     noun = "account" if hits == 1 else "accounts"
     embed = discord.Embed(
-        title="Sale Confirmed",
-        description=(
+         title="💸 Sale Confirmed",
+         description=(
             f"**{hits}** {noun} successfully secured.\n"
             f"You earned **${earned:.2f}** "
             f"({hits} × ${price:.2f})."
@@ -539,10 +550,9 @@ async def _send_seller_success_dm(
     embed.add_field(
         name="Payout Unlock",
         value=(
-            f"Credits unlock <t:{unlock_ts}:R> after hold **and** "
-            f"passing Microsoft lock checks.\n"
+            f"Credits unlock <t:{unlock_ts}:R>\n"
             f"<t:{unlock_ts}:F>\n"
-            f"_Each credit has its own {pending_hours}h timer._"
+            f"_Hold: **{pending_hours}h** per credit_"
         ),
         inline=False,
     )
@@ -551,7 +561,7 @@ async def _send_seller_success_dm(
         value=(
             f"Available · **${bals['available_usd']:.2f}**\n"
             f"Pending · **${bals['pending_usd']:.2f}**\n"
-            f"Sold today · **{sold_today}/{max_day}**"
+            f"Today · **{sold_today}/{max_day}**"
         ),
         inline=False,
     )

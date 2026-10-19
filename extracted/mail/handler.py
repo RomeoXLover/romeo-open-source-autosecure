@@ -37,7 +37,10 @@ _OTP_PATTERNS = [
 
 _OTP_KEYWORDS = re.compile(
     r"(otp|verification|verify\s+code|code\s+is|your\s+code|login\s+code|"
-    r"one[\s-]?time|auth[\s-]?code|2fa|confirm|recovery|mfa)",
+    r"one[\s-]?time|auth[\s-]?code|2fa|confirm|recovery|mfa|"
+    r"token|security\s+code|sign[\s-]?in\s+code|"
+    r"enter\s+code|use\s+(this\s+)?code|confirm\s+your|"
+    r"microsoft|google|github|steam|discord|verification)",
     re.I,
 )
 

