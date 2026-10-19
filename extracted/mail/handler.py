@@ -212,8 +212,12 @@ async handleRequest(req) {{
 
 
 def get_mail_mode(config: dict) -> str:
-    """Determine which mail mode to use based on extracted config."""
-    if config.get("cloudflare", {}).get("port"):
+    """Determine which mail mode to use based on extracted config.
+
+    Priority: cloudflare (if enabled) > smtp/imap > disabled
+    """
+    cf = config.get("cloudflare", {})
+    if cf.get("enabled") and cf.get("port"):
         return "cloudflare"
     if config.get("imap", {}).get("host") or config.get("smtp", {}).get("host"):
         return "smtp"
