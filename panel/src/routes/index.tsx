@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Sign in" },
-      { name: "description", content: "Sign in to your autosecure account." },
+      { name: "description", content: "Sign in to RomeoMSA." },
     ],
   }),
   component: LoginPage,
@@ -84,7 +84,7 @@ function LoginPage() {
             <span className="grid h-8 w-8 place-items-center rounded-md bg-gradient-to-br from-[--primary] to-[--accent] text-primary-foreground">
               <Lock className="h-4 w-4" />
             </span>
-            Open Source<span className="text-gradient">Autosecure</span>
+            Open Source<span className="text-gradient">RomeoMSA</span>
           </a>
         </div>
       </header>
