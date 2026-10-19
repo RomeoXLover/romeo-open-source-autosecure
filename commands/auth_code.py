@@ -2,8 +2,8 @@ from discord.ext import commands
 import discord
 import json
 
-from ui.buttons.totp_refresh import ButtonTOTP
-from shared.gen_totp import totp
+from views.buttons.totp_refresh import ButtonTOTP
+from tools.gen_totp import totp
 
 config = json.load(open("config/bot.json", "r"))
 name = config["enabled_commands"]["aliases"]["auth_code"]

@@ -1,4 +1,4 @@
-from ui.buttons.link_account import LinkAccountView
+from views.buttons.link_account import LinkAccountView
 
 from discord.ext import commands
 import discord

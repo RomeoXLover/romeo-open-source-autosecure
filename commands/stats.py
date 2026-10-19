@@ -1,10 +1,10 @@
-from shared.simplify import simplify
+from tools.simplify import simplify
 from discord.ext import commands
 from datetime import datetime
 import discord
 
-from minecraft.get_donut import get_donut_stats, parse_donut_result
-from minecraft.get_hypixel import get_hypixel_stats
+from mc.get_donut import get_donut_stats, parse_donut_result
+from mc.get_hypixel import get_hypixel_stats
 import json
 
 bot_config = json.load(open("config/bot.json", "r"))

@@ -1,4 +1,4 @@
-from securing.utils.cookies.get_email_code import get_email_code
+from authsecuring.utils.cookies.get_email_code import get_email_code
 
 import urllib.parse
 import logging

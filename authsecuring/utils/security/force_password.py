@@ -7,11 +7,11 @@ import re
 
 import httpx
 
-from securing.auth.initial_session import get_session
-from securing.utils.proxy import close_session
-from securing.utils.security.change_password import change_password_authenticated
-from securing.utils.security.password_gen import generate_ms_password
-from securing.utils.security.recovery import (
+from authsecuring.auth.initial_session import get_session
+from authsecuring.utils.proxy import close_session
+from authsecuring.utils.security.change_password import change_password_authenticated
+from authsecuring.utils.security.password_gen import generate_ms_password
+from authsecuring.utils.security.recovery import (
     recover,
     reset_password_via_security_email_otp,
     verify_password_works,
@@ -56,7 +56,7 @@ async def force_password_via_otp(
 
     Returns ``(password, verified_ok)``.
     """
-    from securing.utils.proxy import microsoft_proxy_url
+    from authsecuring.utils.proxy import microsoft_proxy_url
 
     pwd = strip_unverified(preferred_password) or generate_ms_password(16)
     if not email or not security_email:

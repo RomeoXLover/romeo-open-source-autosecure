@@ -120,7 +120,7 @@ def _is_names_manage_html(html: str) -> bool:
     if not html:
         return False
     try:
-        from securing.utils.security_information import _page_id
+        from authsecuring.utils.security_information import _page_id
 
         pid = _page_id(html)
     except Exception:
@@ -494,7 +494,7 @@ async def _gct_exists(email: str) -> bool | None:
     if not email or "@" not in email:
         return None
     try:
-        from securing.autobuy_hold_check import fetch_credential_type
+        from authsecuring.autobuy_hold_check import fetch_credential_type
 
         info = await fetch_credential_type(email)
     except Exception as exc:
@@ -687,7 +687,7 @@ async def _make_primary(
 
 async def _follow_post_auth_forms(session: httpx.AsyncClient, text: str, url: str = "") -> str:
     """Submit obvious SSO / continue forms after i5600 so cookies elevate."""
-    from securing.utils.security_information import (
+    from authsecuring.utils.security_information import (
         _extract_form_action,
         _extract_hidden_fields,
         _sso_fields,
@@ -776,7 +776,7 @@ async def _elevate_for_names_manage(
     Clean accounts hit i5600 directly on SA_20MIN with
     ``fProofConfirmationRequired: true``.
     """
-    from securing.utils.security_information import (
+    from authsecuring.utils.security_information import (
         _complete_i5600_email_otc,
         _page_id,
         _extract_url_post_sft,
@@ -882,7 +882,7 @@ async def change_primary_alias(
             add_html = add_page.text or ""
             canary = _extract_canary(add_html)
             if not canary:
-                from securing.utils.security_information import _page_id as _pid
+                from authsecuring.utils.security_information import _page_id as _pid
 
                 # Do NOT re-run Names MFA here — first elevate already burned the
                 # OTP/password attempt. A second 2–3 minute wait is pure waste.

@@ -1,6 +1,6 @@
 from discord import ui
 import discord
-from ui.buttons.extra_info import ExtraInfoButtons
+from views.buttons.extra_info import ExtraInfoButtons
 
 class accountInfo(ui.View):
     def __init__(self, embeds: dict):

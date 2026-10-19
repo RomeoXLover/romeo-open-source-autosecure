@@ -2,7 +2,7 @@ from discord.ext import commands
 import discord
 import json
 
-from payments.ltc_wallet import get_ltc_wallet, get_ltc_usd_rate
+from store.ltc_wallet import get_ltc_wallet, get_ltc_usd_rate
 
 bot_config = json.load(open("config/bot.json", "r"))
 name = bot_config["enabled_commands"]["aliases"]["checkbalance"]

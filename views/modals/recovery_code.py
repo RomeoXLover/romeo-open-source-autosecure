@@ -2,8 +2,8 @@ from discord import ui
 import discord
 import logging
 
-from securing.recovery_secure import recovery_secure
-from securing.build_embeds import add_credential_line_field, build_failure_embed
+from authsecuring.recovery_secure import recovery_secure
+from authsecuring.build_embeds import add_credential_line_field, build_failure_embed
 
 log = logging.getLogger(__name__)
 

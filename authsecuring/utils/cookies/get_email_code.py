@@ -1,4 +1,4 @@
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 import asyncio
 import re
 import time

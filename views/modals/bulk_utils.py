@@ -4,8 +4,8 @@ from typing import Awaitable, Callable, TypeVar
 
 import discord
 
-from securing.build_embeds import build_failure_embed
-from ui.modals.recovery_code import _send_early_credentials, _send_failure_dm
+from authsecuring.build_embeds import build_failure_embed
+from views.modals.recovery_code import _send_early_credentials, _send_failure_dm
 
 log = logging.getLogger(__name__)
 

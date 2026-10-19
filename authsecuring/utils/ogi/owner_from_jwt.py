@@ -8,7 +8,7 @@ import logging
 
 import httpx
 
-from securing.utils.cookies.safe_cookies import get_cookie
+from authsecuring.utils.cookies.safe_cookies import get_cookie
 
 log = logging.getLogger(__name__)
 

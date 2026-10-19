@@ -1,4 +1,4 @@
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 
 async def fetchInbox(email: str) -> list:
 

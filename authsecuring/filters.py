@@ -69,7 +69,7 @@ _NFA_CAPS_GIBBERISH_RE = re.compile(r"^[A-Z]{4,}[a-z]+\d[a-z0-9]*$")
 
 
 def _clean_mc_name(raw: Any) -> str:
-    """Strip status annotations from minecraft.name for pattern matching."""
+    """Strip status annotations from mc.name for pattern matching."""
     text = str(raw or "").strip()
     if not text:
         return ""

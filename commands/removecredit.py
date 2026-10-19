@@ -7,7 +7,7 @@ import logging
 from discord.ext import commands
 import discord
 
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 
 bot_config = json.load(open("config/bot.json", "r"))
 name = bot_config["enabled_commands"]["aliases"]["removecredit"]

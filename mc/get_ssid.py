@@ -2,7 +2,7 @@ import logging
 
 import httpx
 
-from minecraft.retry import NoMinecraftEntitlement, TransientMCError, with_retries
+from mc.retry import NoMinecraftEntitlement, TransientMCError, with_retries
 
 log = logging.getLogger(__name__)
 

@@ -4,8 +4,8 @@ import asyncio
 
 import discord
 
-from database.database import DBConnection
-from ui.modals.autobuy import LinkLtcModal, SellMfaModal, Sell2faModal, WithdrawModal
+from storage.romeo_db import RomeoDB as DBConnection
+from views.modals.autobuy import LinkLtcModal, SellMfaModal, Sell2faModal, WithdrawModal
 
 logger = logging.getLogger("bot")
 
@@ -23,7 +23,7 @@ def _autobuy_cfg() -> dict:
 def _wallet_fingerprint() -> tuple[str | None, dict | None]:
     """Return (fingerprint, snapshot) for change detection."""
     try:
-        from payments.ltc_wallet import get_ltc_wallet
+        from store.ltc_wallet import get_ltc_wallet
 
         snap = get_ltc_wallet().balance_snapshot()
         fp = f"{snap['litoshis']}:{snap['usd']:.2f}"
@@ -123,7 +123,7 @@ async def _bg_refresh_message(message: discord.Message | None) -> None:
         # Prefer cached snapshot; background task can refresh from network
         snap = _last_snapshot
         try:
-            from payments.ltc_wallet import get_ltc_wallet
+            from store.ltc_wallet import get_ltc_wallet
 
             snap = await asyncio.to_thread(
                 lambda: get_ltc_wallet().balance_snapshot()
@@ -354,7 +354,7 @@ def build_autobuy_embed(
     wallet_box = "unavailable"
     try:
         if snapshot is None and allow_network:
-            from payments.ltc_wallet import get_ltc_wallet
+            from store.ltc_wallet import get_ltc_wallet
 
             snapshot = get_ltc_wallet().balance_snapshot()
         elif snapshot is None:

@@ -1,6 +1,6 @@
-from database.database import DBConnection
-from shared.fetch_inbox import fetchInbox
-from shared.email_view import emailView
+from storage.romeo_db import RomeoDB as DBConnection
+from tools.fetch_inbox import fetchInbox
+from tools.email_view import emailView
 
 async def get_inbox(email: str) -> dict:
     

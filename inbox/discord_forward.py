@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from mail.otp_detect import detect_otp
+from inbox.otp_detect import detect_otp
 
 log = logging.getLogger(__name__)
 

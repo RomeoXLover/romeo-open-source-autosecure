@@ -1,8 +1,8 @@
 from discord import ui
 import discord
 
-from securing.recovery_secure import recovery_secure
-from ui.modals.bulk_utils import run_bulk_parallel
+from authsecuring.recovery_secure import recovery_secure
+from views.modals.bulk_utils import run_bulk_parallel
 
 
 class BulkAuthRecoveryModal(ui.Modal):

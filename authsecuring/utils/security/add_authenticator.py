@@ -1,4 +1,4 @@
-from shared.gen_totp import totp
+from tools.gen_totp import totp
 import httpx
 import json
 import logging

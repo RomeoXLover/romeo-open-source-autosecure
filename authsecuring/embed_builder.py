@@ -1,6 +1,6 @@
-from minecraft.get_hypixel import get_hypixel_stats
-from minecraft.get_donut import donut_money, get_donut_stats
-from shared.simplify import simplify
+from mc.get_hypixel import get_hypixel_stats
+from mc.get_donut import donut_money, get_donut_stats
+from tools.simplify import simplify
 
 from urllib.parse import quote
 from discord import Embed

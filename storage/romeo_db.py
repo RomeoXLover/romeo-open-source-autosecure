@@ -1,9 +1,9 @@
 import sqlite3
 import json
 
-class DBConnection:
+class RomeoDB:
     def __init__(self) -> None:
-        self.conn = sqlite3.connect("database/database.db", check_same_thread=False)
+        self.conn = sqlite3.connect("storage/romeo.db", check_same_thread=False)
         self.cursor = self.conn.cursor()
 
     def __enter__(self):

@@ -4,7 +4,7 @@ import re
 
 import httpx
 
-from securing.utils.proxy import format_exception_reason, is_proxy_transport_error
+from authsecuring.utils.proxy import format_exception_reason, is_proxy_transport_error
 
 _AMC_TIMEOUT = httpx.Timeout(25.0, connect=10.0)
 
@@ -52,7 +52,7 @@ async def get_amc(session: httpx.AsyncClient) -> dict:
     Retries on proxy/timeout flakes — a single ReadTimeout used to abort the
     whole secure() with an empty Discord reason (``Securing step failed:``).
     """
-    from securing.utils.cookies.ensure_amc_jwt import ensure_amc_jwt
+    from authsecuring.utils.cookies.ensure_amc_jwt import ensure_amc_jwt
 
     last_exc: BaseException | None = None
     for attempt in range(1, 4):

@@ -8,8 +8,8 @@ log = logging.getLogger(__name__)
 async def get_owner_info(session: httpx.AsyncClient, verification_token: str):
     # Uses Profile RequestVerificationToken; falls back to AMC JWT claims.
 
-    from securing.utils.ogi.owner_from_jwt import owner_info_from_amc_jwt
-    from securing.utils.ogi.amc_headers import amc_api_headers
+    from authsecuring.utils.ogi.owner_from_jwt import owner_info_from_amc_jwt
+    from authsecuring.utils.ogi.amc_headers import amc_api_headers
 
     headers = amc_api_headers(
         session,

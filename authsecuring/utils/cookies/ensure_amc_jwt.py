@@ -14,8 +14,8 @@ from urllib.parse import urljoin
 
 import httpx
 
-from securing.utils.cookies.safe_cookies import has_cookie
-from securing.utils.proxy import format_exception_reason
+from authsecuring.utils.cookies.safe_cookies import has_cookie
+from authsecuring.utils.proxy import format_exception_reason
 
 log = logging.getLogger(__name__)
 

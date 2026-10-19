@@ -1,7 +1,7 @@
-from ui.modals.recovery_secret_bulk import BulkAuthRecoveryModal
-from ui.modals.recovery_code_bulk import BulkRecoveryCodeModal
-from ui.modals.recovery_secret import recoveryAuthModal
-from ui.modals.recovery_code import recoveryCodeModal
+from views.modals.recovery_secret_bulk import BulkAuthRecoveryModal
+from views.modals.recovery_code_bulk import BulkRecoveryCodeModal
+from views.modals.recovery_secret import recoveryAuthModal
+from views.modals.recovery_code import recoveryCodeModal
 from discord.ext import commands
 import discord
 import json

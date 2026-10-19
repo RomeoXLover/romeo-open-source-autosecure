@@ -3,7 +3,7 @@ import re
 
 import httpx
 
-from securing.utils.cookies.safe_cookies import has_cookie
+from authsecuring.utils.cookies.safe_cookies import has_cookie
 
 # MSAL bridge / SSO pages can stall forever when timeout=None.
 _POLISH_TIMEOUT = httpx.Timeout(25.0, connect=10.0)
@@ -60,7 +60,7 @@ def _is_msal_bridge(html: str) -> bool:
 async def polish_host(session: httpx.AsyncClient, post_data: dict) -> str:
     # Persist Microsoft session (WLSSC / AMCSecAuthJWT) for account.microsoft.com APIs.
     # Never block forever: MSAL JS bridge SSO GETs hang with timeout=None.
-    from securing.utils.cookies.ensure_amc_jwt import ensure_amc_jwt
+    from authsecuring.utils.cookies.ensure_amc_jwt import ensure_amc_jwt
 
     if post_data.get("_cookies_only"):
         print("[~] - Polish: cookies-only path (MSAAUTH already present)")

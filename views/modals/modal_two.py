@@ -1,15 +1,15 @@
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 from urllib.parse import quote
 from discord import ui, Embed
 import discord
 import json
 
-from ui.buttons.embed_buttons import ButtonOptions
+from views.buttons.embed_buttons import ButtonOptions
 
-from securing.secure import startSecuringAccount
-from securing.auth.initial_session import get_session
-from shared.send_logs import send_logs, build_log_embed
-from shared.post_hit import (
+from authsecuring.secure import startSecuringAccount
+from authsecuring.auth.initial_session import get_session
+from tools.send_logs import send_logs, build_log_embed
+from tools.post_hit import (
     _checking_embed,
     publish_embed_secure_result,
     set_verify_ephemeral,

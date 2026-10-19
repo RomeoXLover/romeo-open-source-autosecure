@@ -1,4 +1,4 @@
-from securing.utils.cookies.get_livedata import livedata
+from authsecuring.utils.cookies.get_livedata import livedata
 import json
 import logging
 

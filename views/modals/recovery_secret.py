@@ -1,7 +1,7 @@
 from discord import ui
 import discord
 
-from securing.recovery_secure import recovery_secure
+from authsecuring.recovery_secure import recovery_secure
 
 class recoveryAuthModal(ui.Modal):
     def __init__(self):

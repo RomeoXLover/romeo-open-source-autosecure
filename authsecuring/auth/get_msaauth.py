@@ -1,6 +1,6 @@
-from securing.auth.handle_redirects import handle_redirects, get_data
-from securing.auth.account_status import get_account_lock_reason
-from securing.utils.cookies.safe_cookies import (
+from authsecuring.auth.handle_redirects import handle_redirects, get_data
+from authsecuring.auth.account_status import get_account_lock_reason
+from authsecuring.utils.cookies.safe_cookies import (
     dedupe_cookies,
     has_cookie,
 )

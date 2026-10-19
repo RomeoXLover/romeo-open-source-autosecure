@@ -2,7 +2,7 @@ from dateutil import parser
 import datetime
 import httpx
 
-from minecraft.retry import TransientMCError, with_retries
+from mc.retry import TransientMCError, with_retries
 
 
 async def _get_username_info_once(ssid: str):

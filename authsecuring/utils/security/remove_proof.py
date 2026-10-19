@@ -5,7 +5,7 @@ import re
 
 import httpx
 
-from securing.utils.cookies.safe_cookies import get_cookie
+from authsecuring.utils.cookies.safe_cookies import get_cookie
 
 logger = logging.getLogger(__name__)
 

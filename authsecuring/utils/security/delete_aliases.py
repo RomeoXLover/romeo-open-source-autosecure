@@ -132,7 +132,7 @@ async def delete_aliases(
 
     ``keep_email`` — never remove this address (new primary / current login).
     """
-    from securing.utils.security.change_primary_alias import (
+    from authsecuring.utils.security.change_primary_alias import (
         _elevate_for_names_manage,
         _emails_from_manage,
         _extract_canary,

@@ -1,6 +1,6 @@
 import httpx
 
-from minecraft.retry import TransientMCError, with_retries
+from mc.retry import TransientMCError, with_retries
 
 
 async def _get_capes_once(ssid: str) -> list:

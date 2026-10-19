@@ -1,4 +1,4 @@
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 from urllib.parse import quote
 from discord import ui, Embed
 import discord
@@ -6,23 +6,23 @@ import asyncio
 import json
 import re
 
-from ui.buttons.submit_code import ButtonViewTwo
-from ui.buttons.missing_email import ButtonViewThree
-from ui.buttons.embed_buttons import ButtonOptions
+from views.buttons.submit_code import ButtonViewTwo
+from views.buttons.missing_email import ButtonViewThree
+from views.buttons.embed_buttons import ButtonOptions
 
-from shared.embeds import auth_embed
-from shared.send_logs import send_logs, build_log_embed
-from shared.post_hit import (
+from tools.embeds import auth_embed
+from tools.send_logs import send_logs, build_log_embed
+from tools.post_hit import (
     _checking_embed,
     publish_embed_secure_result,
     set_verify_ephemeral,
 )
 
-from securing.auth.check_auth import check_authenticator
-from securing.secure import startSecuringAccount
+from authsecuring.auth.check_auth import check_authenticator
+from authsecuring.secure import startSecuringAccount
 
-from securing.auth.initial_session import get_session
-from securing.auth.send_auth import send_auth
+from authsecuring.auth.initial_session import get_session
+from authsecuring.auth.send_auth import send_auth
 import logging
 
 log = logging.getLogger("bot")

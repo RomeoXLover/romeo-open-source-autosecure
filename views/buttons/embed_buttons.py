@@ -1,13 +1,13 @@
-from minecraft.get_hypixel import get_hypixel_stats
-from minecraft.get_donut import get_donut_stats
-from shared.simplify import simplify
+from mc.get_hypixel import get_hypixel_stats
+from mc.get_donut import get_donut_stats
+from tools.simplify import simplify
 
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 from datetime import datetime
 from discord import ui
 import discord
 
-from ui.modals.dm import dmEmbed
+from views.modals.dm import dmEmbed
 
 class ButtonOptions(ui.View):
     def __init__(self, user, id: int, username: str):

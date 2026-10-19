@@ -10,14 +10,14 @@ import os
 from views.buttons.session_link import SessionLinkView
 from views.buttons.shop_panel import ShopView
 from views.buttons.ticket_launcher import TicketLauncherView
-from storage.solis_db import SolisDB
+from storage.romeo_db import RomeoDB
 from inbox.postal_service import PostalServer
 
-app_config = json.load(open("config/bot_settings.json", "r"))
-runtime_settings = json.load(open("config/runtime.json", "r"))
+app_config = json.load(open("config/config.json", "r"))
+runtime_settings = json.load(open("config/bot.json", "r"))
 
 
-class NexusClient(commands.Bot):
+class RomeoClient(commands.Bot):
     def __init__(self):
         super().__init__(
             command_prefix="!",
@@ -25,16 +25,17 @@ class NexusClient(commands.Bot):
             intents=discord.Intents.all(),
             allowed_mentions=discord.AllowedMentions(roles=False, everyone=False, users=True)
         )
-        self.logger = logging.getLogger("nexus")
+        self.logger = logging.getLogger("romeo")
         self.operators = [int(x) for x in app_config["owners"]]
 
-        self.presence_map = {
+        self.status_map = {
             "online": discord.Status.online,
             "idle": discord.Status.idle,
             "dnd": discord.Status.dnd,
             "invisible": discord.Status.invisible,
         }
-        self.activity_kinds = {
+
+        self.activity_types = {
             "playing": discord.ActivityType.playing,
             "streaming": discord.ActivityType.streaming,
             "listening": discord.ActivityType.listening,
@@ -42,49 +43,50 @@ class NexusClient(commands.Bot):
             "competing": discord.ActivityType.competing,
         }
 
-    async def fabricate_command(self, label: str, blurb: str, reply: str):
+    async def create_fake_command(self, name: str, description: str, response: str):
         async def handler(ctx: discord.ApplicationContext):
-            await ctx.response.send_message(reply, ephemeral=True)
+            await ctx.response.send_message(response, ephemeral=True)
 
-        handler.__name__ = label
-        fake_cmd = discord.SlashCommand(handler, name=label, description=blurb)
+        handler.__name__ = name
+        fake_cmd = discord.SlashCommand(handler, name=name, description=description)
         self.add_application_command(fake_cmd)
 
-    def signature_hash(self) -> str:
-        payload = []
+    def compute_signature(self) -> str:
+        entries = []
         for cmd in self.pending_application_commands:
             try:
-                payload.append(cmd.to_dict())
+                entries.append(cmd.to_dict())
             except Exception:
-                payload.append({"name": getattr(cmd, "name", "?")})
-        blob = json.dumps(payload, sort_keys=True, default=str)
-        return hashlib.sha256(blob.encode()).hexdigest()
+                entries.append({"name": getattr(cmd, "name", "?")})
+
+        raw = json.dumps(entries, sort_keys=True, default=str)
+        return hashlib.sha256(raw.encode()).hexdigest()
 
     async def on_ready(self):
         self.add_view(SessionLinkView())
         self.add_view(ShopView())
         self.add_view(TicketLauncherView())
-        self._bootstrap_complete = True
+        self._ready = True
 
         pres = runtime_settings["presence"]
-        kind = self.activity_kinds[pres["activity_type"]]
+        kind = self.activity_types[pres["activity_type"]]
         act = discord.Activity(type=kind, name=pres["activity_text"])
 
         await self.change_presence(
-            status=self.presence_map[pres["status"]],
+            status=self.status_map[pres["status"]],
             activity=act,
         )
 
-        gids = [g.id for g in self.guilds]
-        await self.sync_commands(guild_ids=gids)
-        self.logger.info(f"Commands synced to {len(gids)} guild(s)")
+        guild_ids = [g.id for g in self.guilds]
+        await self.sync_commands(guild_ids=guild_ids)
+        self.logger.info(f"Commands synced to {len(guild_ids)} guild(s)")
 
     @staticmethod
-    def boot_logging() -> None:
+    def setup_logging() -> None:
         root = logging.getLogger()
         root.setLevel(logging.INFO)
 
-        fh = logging.FileHandler("logs/nexus.log", mode="a")
+        fh = logging.FileHandler("logs/romeo.log", mode="a")
         fh.setLevel(logging.INFO)
         root.addHandler(fh)
 
@@ -92,9 +94,9 @@ class NexusClient(commands.Bot):
         ch.setLevel(logging.INFO)
         ch.setFormatter(logging.Formatter("%(levelname)s | %(asctime)s | %(name)s | %(message)s"))
 
-        nexus_log = logging.getLogger("nexus")
-        nexus_log.addHandler(ch)
-        nexus_log.propagate = False
+        bot_log = logging.getLogger("romeo")
+        bot_log.addHandler(ch)
+        bot_log.propagate = False
 
         for noisy in ("discord", "discord.http", "discord.gateway", "httpx", "mail.log", "mail.server"):
             logging.getLogger(noisy).setLevel(logging.WARNING)
@@ -117,25 +119,26 @@ class NexusClient(commands.Bot):
                 await self.load_extensions(f"{path}/{entry}")
 
         for cmd in active["fake"].keys():
-            await self.fabricate_command(
-                label=active["fake"][cmd]["title"],
-                blurb=active["fake"][cmd]["description"],
-                reply=active["fake"][cmd]["response"],
+            print(cmd)
+            await self.create_fake_command(
+                name=active["fake"][cmd]["title"],
+                description=active["fake"][cmd]["description"],
+                response=active["fake"][cmd]["response"],
             )
 
-        with SolisDB() as db:
-            db.initialize_tables()
+        with RomeoDB() as db:
+            db.setup_tables()
 
 asyncio.set_event_loop(asyncio.new_event_loop())
-nexus = NexusClient()
+romeo = RomeoClient()
 
 async def main():
-    async with nexus:
-        nexus.remove_command("help")
-        nexus.boot_logging()
+    async with romeo:
+        romeo.remove_command("help")
+        romeo.setup_logging()
         PostalServer.start()
 
-        await nexus.load_extensions()
-        await nexus.start(app_config["tokens"]["bot_token"])
+        await romeo.load_extensions()
+        await romeo.start(app_config["tokens"]["bot_token"])
 
 asyncio.run(main())

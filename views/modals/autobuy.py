@@ -5,9 +5,9 @@ import logging
 from discord import ui
 import discord
 
-from database.database import DBConnection
-from payments.ltc_wallet import is_valid_ltc_address
-from securing.recovery_secure import recovery_secure
+from storage.romeo_db import RomeoDB as DBConnection
+from store.ltc_wallet import is_valid_ltc_address
+from authsecuring.recovery_secure import recovery_secure
 
 logger = logging.getLogger("bot")
 
@@ -711,7 +711,7 @@ class WithdrawModal(ui.Modal):
             )
 
         try:
-            from payments.ltc_wallet import get_ltc_usd_rate, get_ltc_wallet
+            from store.ltc_wallet import get_ltc_usd_rate, get_ltc_wallet
 
             rate = get_ltc_usd_rate()
             amount_ltc = amount / rate
@@ -728,7 +728,7 @@ class WithdrawModal(ui.Modal):
                     wid, status="sent", txid=txid, amount_ltc=amount_ltc
                 )
 
-            from payments.ltc_wallet import blockcypher_tx_url
+            from store.ltc_wallet import blockcypher_tx_url
 
             explorer = blockcypher_tx_url(txid)
             embed = discord.Embed(
@@ -764,7 +764,7 @@ class WithdrawModal(ui.Modal):
 
             # Hot wallet balance dropped — refresh all selling panels
             try:
-                from ui.buttons.autobuy import refresh_autobuy_panels
+                from views.buttons.autobuy import refresh_autobuy_panels
 
                 await refresh_autobuy_panels(interaction.client, force=True)
             except Exception:
@@ -1009,7 +1009,7 @@ async def _autobuy_sell_callback(
                         or ms.get("security_email")
                         or ms.get("password")
                     ):
-                        from securing.build_embeds import build_failure_embed
+                        from authsecuring.build_embeds import build_failure_embed
 
                         fail_embed = build_failure_embed(
                             ms.get("original_email") or email,

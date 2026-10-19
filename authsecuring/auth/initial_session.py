@@ -1,8 +1,8 @@
 from fake_useragent import UserAgent
 import httpx
 
-from securing.utils.cookies.safe_cookies import dedupe_cookies
-from securing.utils.proxy import build_proxy_url
+from authsecuring.utils.cookies.safe_cookies import dedupe_cookies
+from authsecuring.utils.proxy import build_proxy_url
 
 
 def get_session(cookies: httpx.Cookies | None = None, user_agent: str | None = None) -> httpx.AsyncClient:
@@ -43,7 +43,7 @@ def clone_session_new_proxy(old: httpx.AsyncClient) -> httpx.AsyncClient:
     then wrapping ConnectError as RuntimeError so the outer secure() loop
     never rotated.
     """
-    from securing.utils.secure import _copy_cookies
+    from authsecuring.utils.secure import _copy_cookies
 
     ua = None
     try:

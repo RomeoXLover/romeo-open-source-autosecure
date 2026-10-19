@@ -1,4 +1,4 @@
-from ui.modals.modal_one import MyModalOne
+from views.modals.modal_one import MyModalOne
 import discord
 import json
 

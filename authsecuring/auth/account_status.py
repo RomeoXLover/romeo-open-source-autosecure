@@ -1,7 +1,7 @@
 import json
 import re
 
-from securing.auth.check_locked import check_locked
+from authsecuring.auth.check_locked import check_locked
 
 # Keep patterns specific — bare "blocked" matches template strings like
 # strFedInviteBlockedMsg on every normal login page (false positive).

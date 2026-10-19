@@ -1,4 +1,4 @@
-from securing.auth.send_auth import send_auth
+from authsecuring.auth.send_auth import send_auth
 
 from discord.ext import commands
 import discord

@@ -1,6 +1,6 @@
-from ui.buttons.mail_inbox import get_inbox
+from views.buttons.mail_inbox import get_inbox
 
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 from discord.ext import commands
 import discord
 import json

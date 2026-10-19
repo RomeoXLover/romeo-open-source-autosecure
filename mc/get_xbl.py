@@ -19,7 +19,7 @@ from urllib.parse import parse_qs, unquote, urljoin, urlparse
 
 import httpx
 
-from minecraft.retry import TransientMCError, with_retries
+from mc.retry import TransientMCError, with_retries
 
 log = logging.getLogger(__name__)
 
@@ -551,7 +551,7 @@ async def _complete_catb_with_otp(
     security_email: str,
 ) -> httpx.Response:
     """SendOtt → OTP → VerifyProof, repeating once if orc/rc bounce."""
-    from securing.utils.cookies.get_email_code import get_email_code
+    from authsecuring.utils.cookies.get_email_code import get_email_code
 
     current_html = html
     current_url = page_url

@@ -2,7 +2,7 @@ from discord.ext import commands
 import discord
 import json
 
-from securing.auth.check_locked import check_locked
+from authsecuring.auth.check_locked import check_locked
 
 config = json.load(open("config/bot.json", "r"))
 name = config["enabled_commands"]["aliases"]["check_lock"]

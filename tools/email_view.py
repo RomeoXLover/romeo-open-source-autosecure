@@ -1,4 +1,4 @@
-from shared.fetch_inbox import fetchInbox
+from tools.fetch_inbox import fetchInbox
 from discord import ui
 import discord
 

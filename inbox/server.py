@@ -1,7 +1,7 @@
 from email import message_from_bytes
 from aiosmtpd.controller import Controller
-from database.database import DBConnection
-from mail.discord_forward import schedule_forward
+from storage.romeo_db import RomeoDB as DBConnection
+from inbox.discord_forward import schedule_forward
 import logging
 import os
 

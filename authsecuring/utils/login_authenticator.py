@@ -1,9 +1,9 @@
-from securing.auth.handle_redirects import handle_redirects, submit_form, handle_fido
-from securing.auth.polish_host import polish_host
-from securing.utils.cookies.get_livedata import livedata
-from securing.utils.cookies.safe_cookies import has_cookie
-from securing.utils.login_pwd import login_pwd
-from shared.gen_totp import totp
+from authsecuring.auth.handle_redirects import handle_redirects, submit_form, handle_fido
+from authsecuring.auth.polish_host import polish_host
+from authsecuring.utils.cookies.get_livedata import livedata
+from authsecuring.utils.cookies.safe_cookies import has_cookie
+from authsecuring.utils.login_pwd import login_pwd
+from tools.gen_totp import totp
 
 import logging
 import httpx

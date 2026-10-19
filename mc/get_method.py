@@ -19,7 +19,7 @@ from typing import Any
 
 import httpx
 
-from minecraft.retry import TransientMCError, with_retries
+from mc.retry import TransientMCError, with_retries
 
 log = logging.getLogger(__name__)
 
