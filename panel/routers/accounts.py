@@ -11,7 +11,7 @@ import time
 import logging
 
 router = APIRouter()
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 class BulkDeleteRequest(BaseModel):
