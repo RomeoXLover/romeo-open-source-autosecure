@@ -4,7 +4,7 @@ import urllib.parse
 
 import httpx
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 def _decode_canary(raw: str) -> str:
@@ -60,12 +60,12 @@ async def fetch_canary(session: httpx.AsyncClient) -> str | None:
                 follow_redirects=True,
             )
         except Exception:
-            log.exception("get_cookies: GET %s failed", url)
+            rom.exception("get_cookies: GET %s failed", url)
             continue
         canary = _find_canary(data.text or "")
         if canary:
             return canary
-        log.warning(
+        rom.warning(
             "get_cookies: no canary on %s (status=%s len=%s)",
             url,
             data.status_code,

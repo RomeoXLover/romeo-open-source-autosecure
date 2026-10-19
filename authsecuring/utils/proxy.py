@@ -22,7 +22,7 @@ from urllib.parse import quote
 
 import httpx
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 _CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "config.json"
 # niceproxy: ssid-XXXX ; vaultproxies: -s-XXXX-ttl-N (avoid matching -sst-)
@@ -108,7 +108,7 @@ def _load_proxy_cfg() -> dict:
         cfg = json.loads(_CONFIG_PATH.read_text())
         return cfg.get("proxy") or {}
     except Exception:
-        log.exception("Failed to load proxy config")
+        rom.exception("Failed to load proxy config")
         return {}
 
 
@@ -128,11 +128,11 @@ def _parse_line(line: str) -> dict | None:
         return None
     parts = line.split(":", 3)
     if len(parts) != 4:
-        log.warning("Invalid proxy line (need host:port:user:pass): %s", line[:60])
+        rom.warning("Invalid proxy line (need host:port:user:pass): %s", line[:60])
         return None
     host, port, user, password = parts
     if not host or not port.isdigit() or not user or not password:
-        log.warning("Invalid proxy line fields: %s", line[:60])
+        rom.warning("Invalid proxy line fields: %s", line[:60])
         return None
     return {
         "host": host,
@@ -228,7 +228,7 @@ def build_proxy_url() -> str | None:
         lines = [lines]
     parsed = [p for p in (_parse_line(x) for x in lines) if p]
     if not parsed:
-        log.warning("proxy.enabled but no valid proxies configured")
+        rom.warning("proxy.enabled but no valid proxies configured")
         return None
 
     base = random.choice(parsed)
@@ -244,7 +244,7 @@ def build_proxy_url() -> str | None:
     url = f"{scheme}://{user_q}:{pass_q}@{host}:{base['port']}"
     sid = _session_id_from_creds(user, password)
     print(f"[~] - Proxy sticky s={sid} via {host}:{base['port']} ({scheme})")
-    log.info("Using proxy %s:%s session=%s scheme=%s", host, base["port"], sid, scheme)
+    rom.info("Using proxy %s:%s session=%s scheme=%s", host, base["port"], sid, scheme)
     return url
 
 
@@ -296,7 +296,7 @@ def apply_requests_proxy(client, proxy_url: str | None, *, what: str) -> None:
     except Exception:
         host = "proxy"
     print(f"[~] - {what} via residential proxy {host}")
-    log.info("%s using residential proxy host=%s", what, host)
+    rom.info("%s using residential proxy host=%s", what, host)
 
 
 # Xbox/Minecraft CDNs often fail through residential HTTP CONNECT.
@@ -382,7 +382,7 @@ async def run_with_proxy_retry(
         except PROXY_TRANSPORT_ERRORS as exc:
             last_exc = exc
             rotate = attempt >= rotate_ssid_after
-            log.warning(
+            rom.warning(
                 "proxy retry %s/%s for %s (%s): %s — %s",
                 attempt,
                 attempts,

@@ -4,7 +4,7 @@ import httpx
 
 from authsecuring.utils.ogi.amc_headers import amc_api_headers
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 async def fetch_devices(session: httpx.AsyncClient, verification_token: str):
@@ -19,18 +19,18 @@ async def fetch_devices(session: httpx.AsyncClient, verification_token: str):
             follow_redirects=True,
         )
     except Exception:
-        log.exception("get_devices request failed")
+        rom.exception("get_devices request failed")
         return {"devices": []}
 
     body = devices.text or ""
     if not body.strip():
-        log.warning("get_devices: empty response status=%s", devices.status_code)
+        rom.warning("get_devices: empty response status=%s", devices.status_code)
         return {"devices": []}
 
     try:
         data = devices.json()
     except Exception:
-        log.warning(
+        rom.warning(
             "get_devices: non-JSON status=%s snippet=%r",
             devices.status_code,
             body[:200],
@@ -40,7 +40,7 @@ async def fetch_devices(session: httpx.AsyncClient, verification_token: str):
     if not isinstance(data, dict):
         return {"devices": []}
     if data.get("error") and not data.get("devices"):
-        log.warning(
+        rom.warning(
             "get_devices: API error status=%s error=%s",
             devices.status_code,
             data.get("error"),

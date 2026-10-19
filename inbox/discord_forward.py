@@ -7,7 +7,7 @@ import httpx
 
 from inbox.otp_detect import detect_otp
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 _config = None
 
@@ -93,14 +93,14 @@ async def _push_otp_to_bridge(
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.post(bridge_url, json=payload, headers=headers)
             response.raise_for_status()
-        log.info(
+        rom.info(
             "[otp-bridge] pushed to %s for %s%s",
             bridge_url,
             ", ".join(recipients),
             f" code={code}" if code else "",
         )
     except httpx.HTTPError as err:
-        log.warning("[otp-bridge] push to %s failed: %s", bridge_url, err)
+        rom.warning("[otp-bridge] push to %s failed: %s", bridge_url, err)
 
 
 def _bridge_targets(mail_cfg: dict) -> list[tuple[str, str]]:
@@ -160,9 +160,9 @@ async def forward_email(
             to_addresses=recipients,
             domain=domain,
         )
-        log.info('[discord] posted to all webhook (%s)', subject or "(no subject)")
+        rom.info('[discord] posted to all webhook (%s)', subject or "(no subject)")
     except httpx.HTTPError as err:
-        log.warning("[discord] all webhook failed: %s", err)
+        rom.warning("[discord] all webhook failed: %s", err)
 
     if otp.get("is_otp") and webhook_otp:
         try:
@@ -175,9 +175,9 @@ async def forward_email(
                 domain=domain,
                 otp=otp,
             )
-            log.info('[discord] posted to otp webhook (%s)', subject or "(no subject)")
+            rom.info('[discord] posted to otp webhook (%s)', subject or "(no subject)")
         except httpx.HTTPError as err:
-            log.warning("[discord] otp webhook failed: %s", err)
+            rom.warning("[discord] otp webhook failed: %s", err)
 
     # Fan-out OTP to every bridge in parallel (playtime :12798 + cft :12799).
     # One failing target must never block the others.

@@ -4,7 +4,7 @@ import httpx
 
 from mc.retry import NoMinecraftEntitlement, TransientMCError, with_retries
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 async def _get_ssid_once(xbl: str) -> str | None:
@@ -42,7 +42,7 @@ async def _get_ssid_once(xbl: str) -> str | None:
             and any(x in err_u for x in ("FORBIDDEN", "UNAUTHORIZED"))
             and "ENTITLEMENT" in err_u
         ):
-            log.info("get_ssid: no MC entitlement (%s)", err or response.status_code)
+            rom.info("get_ssid: no MC entitlement (%s)", err or response.status_code)
             raise NoMinecraftEntitlement(str(err or response.status_code))
 
         if response.status_code in (401, 403):

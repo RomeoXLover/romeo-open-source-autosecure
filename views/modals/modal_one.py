@@ -25,7 +25,7 @@ from authsecuring.auth.initial_session import get_session
 from authsecuring.auth.send_auth import send_auth
 import logging
 
-log = logging.getLogger("bot")
+rom = logging.getLogger(__name__)
 
 
 def _auth_discord_embed(payload: dict) -> Embed:
@@ -133,7 +133,7 @@ class MyModalOne(ui.Modal):
         try:
             email_info = await send_auth(self.session, email)
         except Exception:
-            log.exception("send_auth failed for %s", email)
+            rom.exception("send_auth failed for %s", email)
             await _set_ephemeral(
                 interaction,
                 Embed(
@@ -268,7 +268,7 @@ class MyModalOne(ui.Modal):
                             embed_verify=True,
                         )
                     except Exception as exc:
-                        log.exception("embed auth romeo_secure crashed")
+                        rom.exception("embed auth romeo_secure crashed")
                         securedAccount = {
                             "failed": True,
                             "reason": "Securing crashed",

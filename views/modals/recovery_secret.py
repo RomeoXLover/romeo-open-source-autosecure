@@ -50,7 +50,7 @@ class recoveryAuthModal(ui.Modal):
         if account == "invalid":
             await interaction.followup.send(
                 embed = discord.Embed(
-                    title = "Failed to secure account",
+                    title = "[x] secure failed account",
                     description = "Invalid Password / Secret\nMake sure you have 2FA Enabled!",
                     color = 0x2765F5
                 ),
@@ -61,7 +61,7 @@ class recoveryAuthModal(ui.Modal):
         if not account:
             await interaction.followup.send(
                 embed = discord.Embed(
-                    title = "Failed to secure account",
+                    title = "[x] secure failed account",
                     description = "Make sure your password and authenticator secret are correct and 2FA is enabled",
                     color = 0x2765F5
                 ),

@@ -8,7 +8,7 @@ import re
 from datetime import date, datetime
 from typing import Any
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 def _load_reject_cfg() -> dict:
@@ -522,7 +522,7 @@ def rejection_cause(account_info: dict | None, *, cfg: dict | None = None) -> st
         ms["password"] = re.sub(
             r"\s*\(UNVERIFIED[^)]*\)\s*$", "", pwd
         ).strip() or pwd
-        log.warning(
+        rom.warning(
             "Allowing sell with recovery code despite UNVERIFIED password "
             "(email=%s)",
             ms.get("email") or ms.get("original_email"),

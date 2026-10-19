@@ -6,7 +6,7 @@ import httpx
 
 from authsecuring.utils.ogi.amc_headers import amc_api_headers
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 def _empty() -> dict:
@@ -126,7 +126,7 @@ def _map_payment_transactions(data: dict | list) -> dict | None:
             bucket = active
         bucket.append(s)
         if "game" in title and "pass" in title:
-            log.info(
+            rom.info(
                 "map sub title=%r status=%r autoRenew=%r renewal=%r -> %s",
                 title[:80],
                 status,
@@ -154,17 +154,17 @@ async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
             follow_redirects=True,
         )
     except Exception:
-        log.exception("get_subscriptions msadelegate request failed")
+        rom.exception("get_subscriptions msadelegate request failed")
         return None
 
     body = resp.text or ""
     if not body.strip():
-        log.warning("get_subscriptions msadelegate: empty status=%s", resp.status_code)
+        rom.warning("get_subscriptions msadelegate: empty status=%s", resp.status_code)
         return None
     try:
         data = resp.json()
     except Exception:
-        log.warning(
+        rom.warning(
             "get_subscriptions msadelegate: non-JSON status=%s snippet=%r",
             resp.status_code,
             body[:200],
@@ -201,18 +201,18 @@ async def fetch_subscriptions(session: httpx.AsyncClient, verification_token: st
             ),
         )
     except Exception:
-        log.exception("get_subscriptions request failed")
+        rom.exception("get_subscriptions request failed")
         return _empty()
 
     body = subscriptions.text or ""
     if not body.strip():
-        log.warning("get_subscriptions: empty status=%s", subscriptions.status_code)
+        rom.warning("get_subscriptions: empty status=%s", subscriptions.status_code)
         return _empty()
 
     try:
         data = subscriptions.json()
     except Exception:
-        log.warning(
+        rom.warning(
             "get_subscriptions: non-JSON status=%s snippet=%r",
             subscriptions.status_code,
             body[:200],
@@ -225,7 +225,7 @@ async def fetch_subscriptions(session: httpx.AsyncClient, verification_token: st
     if data.get("error") and not any(
         data.get(k) for k in ("active", "canceled", "commercial", "subscriptions")
     ):
-        log.warning(
+        rom.warning(
             "get_subscriptions: API error status=%s error=%s",
             subscriptions.status_code,
             data.get("error"),

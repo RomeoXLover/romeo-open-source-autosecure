@@ -21,7 +21,7 @@ import httpx
 
 from mc.retry import TransientMCError, with_retries
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 LICENSE_URL = "https://api.minecraftservices.com/entitlements/license"
 MCSTORE_URL = "https://api.minecraftservices.com/entitlements/mcstore"
@@ -124,10 +124,10 @@ async def _get_json(
         raise TransientMCError(f"{label} unauthorized", status=401)
     if resp.status_code == 403:
         # Often no entitlement / forbidden — treat as empty, not crash
-        log.info("%s forbidden (403) — treating as no items", label)
+        rom.info("%s forbidden (403) — treating as no items", label)
         return {"items": []}
     if resp.status_code != 200:
-        log.warning("%s unexpected status %s: %s", label, resp.status_code, resp.text[:200])
+        rom.warning("%s unexpected status %s: %s", label, resp.status_code, resp.text[:200])
         return None
     try:
         data = resp.json()
@@ -158,7 +158,7 @@ async def _fetch_entitlements_once(ssid: str) -> dict[str, Any]:
         if classified["method"]:
             classified["endpoint"] = "license"
             classified["request_id"] = request_id
-            log.info(
+            rom.info(
                 "entitlements/license → %s (game_minecraft=%s) items=%s",
                 classified["method"],
                 classified.get("game_minecraft_source"),
@@ -185,7 +185,7 @@ async def _fetch_entitlements_once(ssid: str) -> dict[str, Any]:
                 "request_id": request_id,
                 "note": "license items present but no PURCHASE/GAMEPASS source on game_minecraft",
             }
-            log.warning(
+            rom.warning(
                 "entitlements/license: items=%s but no classifiable game_minecraft source",
                 classified.get("items_summary"),
             )
@@ -206,7 +206,7 @@ async def _fetch_entitlements_once(ssid: str) -> dict[str, Any]:
                 "no game_minecraft ownership"
             ),
         }
-        log.info("entitlements → %s", result["note"])
+        rom.info("entitlements → %s", result["note"])
         return result
 
 

@@ -17,7 +17,7 @@ import re
 
 import httpx
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 _FAMILY_HOME = "https://account.microsoft.com/family/home"
 _ROSTER_URL = "https://account.microsoft.com/family/api/roster"
@@ -152,12 +152,12 @@ async def _scrape_family_token(
         token = _token_from_html(page.text or "")
         if token:
             return token
-        log.warning(
+        rom.warning(
             "leave_family: no RequestVerificationToken on family/home (status=%s)",
             page.status_code,
         )
     except Exception as exc:
-        log.warning("leave_family: family/home GET failed: %s", exc)
+        rom.warning("leave_family: family/home GET failed: %s", exc)
 
     if fallback:
         return fallback
@@ -175,18 +175,18 @@ async def _get_roster(
             follow_redirects=True,
         )
     except Exception:
-        log.exception("leave_family: roster request failed")
+        rom.exception("leave_family: roster request failed")
         return {}
     try:
         data = resp.json()
     except Exception:
-        log.warning("leave_family: roster non-JSON status=%s", resp.status_code)
+        rom.warning("leave_family: roster non-JSON status=%s", resp.status_code)
         return {}
     if not isinstance(data, dict):
         return {}
     err = _api_error(data)
     if err and not _members(data):
-        log.warning("leave_family: roster error %s", err)
+        rom.warning("leave_family: roster error %s", err)
         return {}
     return data
 
@@ -209,7 +209,7 @@ async def _delete_member(
             follow_redirects=True,
         )
     except Exception as exc:
-        log.warning("leave_family: DELETE %s failed: %s", remove_set[:40], exc)
+        rom.warning("leave_family: DELETE %s failed: %s", remove_set[:40], exc)
         return False, str(exc.__class__.__name__)
 
     data = None
@@ -284,7 +284,7 @@ async def leave_family_group(
                 print(f"[+] - Removed family member ({role})")
             else:
                 last_err = err
-                log.warning("leave_family: kick failed err=%s", err)
+                rom.warning("leave_family: kick failed err=%s", err)
                 print(f"[X] - Family kick failed err={err}")
 
     left = False
@@ -312,7 +312,7 @@ async def leave_family_group(
             print("[+] - Left Microsoft Family")
         else:
             last_err = err
-            log.warning("leave_family: leave-self failed err=%s", err)
+            rom.warning("leave_family: leave-self failed err=%s", err)
             print(f"[X] - Family leave failed err={err}")
     else:
         last_err = "no_self_puid"

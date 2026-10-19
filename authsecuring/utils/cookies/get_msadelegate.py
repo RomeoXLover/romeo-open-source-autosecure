@@ -11,7 +11,7 @@ import logging
 
 import httpx
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 _TIMEOUT = httpx.Timeout(20.0, connect=10.0)
 
@@ -28,13 +28,13 @@ async def get_msadelegate(session: httpx.AsyncClient) -> str | None:
             timeout=_TIMEOUT,
         )
     except Exception:
-        log.exception("get_msadelegate request failed")
+        rom.exception("get_msadelegate request failed")
         return None
 
     try:
         data = resp.json()
     except Exception:
-        log.warning(
+        rom.warning(
             "get_msadelegate: non-JSON status=%s snippet=%r",
             resp.status_code,
             (resp.text or "")[:200],
@@ -47,5 +47,5 @@ async def get_msadelegate(session: httpx.AsyncClient) -> str | None:
             print("[+] - Got MSADELEGATE (pidl)")
             return token_data["token"]
 
-    log.warning("get_msadelegate: no token status=%s data=%r", resp.status_code, data)
+    rom.warning("get_msadelegate: no token status=%s data=%r", resp.status_code, data)
     return None

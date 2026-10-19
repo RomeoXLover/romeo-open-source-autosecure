@@ -2,7 +2,7 @@ import logging
 
 import httpx
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 async def fetch_owner(session: httpx.AsyncClient, verification_token: str):
@@ -23,18 +23,18 @@ async def fetch_owner(session: httpx.AsyncClient, verification_token: str):
             headers=headers,
         )
     except Exception:
-        log.exception("get_owner_info request failed")
+        rom.exception("get_owner_info request failed")
         return jwt_to_owner(session)
 
     body = get_info.text or ""
     if not body.strip():
-        log.warning("get_owner_info: empty status=%s", get_info.status_code)
+        rom.warning("get_owner_info: empty status=%s", get_info.status_code)
         return jwt_to_owner(session)
 
     try:
         data = get_info.json()
     except Exception:
-        log.warning(
+        rom.warning(
             "get_owner_info: non-JSON status=%s snippet=%r",
             get_info.status_code,
             body[:200],
@@ -46,7 +46,7 @@ async def fetch_owner(session: httpx.AsyncClient, verification_token: str):
 
     # API returns {"error":"getPersonalInfoFailed"} when AMC session is incomplete
     if data.get("error") and not data.get("firstName") and not data.get("signInEmail"):
-        log.warning(
+        rom.warning(
             "get_owner_info: API error status=%s error=%s — using AMC JWT claims",
             get_info.status_code,
             data.get("error"),

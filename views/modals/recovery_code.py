@@ -5,7 +5,7 @@ import logging
 from authsecuring.recover import romeo_recover
 from authsecuring.embed_builder import add_credential_line_field, build_failure_embed
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 async def _send_failure_dm(user: discord.User | discord.Member, embed: discord.Embed) -> bool:
@@ -41,7 +41,7 @@ async def _send_early_credentials(user: discord.User | discord.Member, creds: di
     try:
         await user.send(embed=embed)
     except discord.Forbidden:
-        log.warning("Could not DM early credentials for %s", creds.get("email"))
+        rom.warning("Could not DM early credentials for %s", creds.get("email"))
 
 
 class recoveryCodeModal(ui.Modal):
@@ -75,7 +75,7 @@ class recoveryCodeModal(ui.Modal):
                 on_credentials=lambda creds: _send_early_credentials(interaction.user, creds),
             )
         except Exception as e:
-            log.exception("recovery_secure crashed for %s", email)
+            rom.exception("recovery_secure crashed for %s", email)
             fail_embed = build_failure_embed(
                 email,
                 {},
@@ -97,7 +97,7 @@ class recoveryCodeModal(ui.Modal):
         if account == "invalid":
             await interaction.followup.send(
                 embed = discord.Embed(
-                    title = "Failed to secure account",
+                    title = "[x] secure failed account",
                     description = "Invalid Recovery Code",
                     color = 0x2765F5
                 ),

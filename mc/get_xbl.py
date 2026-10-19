@@ -21,7 +21,7 @@ import httpx
 
 from mc.retry import TransientMCError, with_retries
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 _SISU_URL = (
     "https://sisu.xboxlive.com/connect/XboxLive/"
@@ -167,7 +167,7 @@ async def _post_auto_submit_bridge(
             f"proofs auto-submit bridge missing pprid/ipt fields url={page_url[:160]}"
         )
     action, fields = sso
-    log.info("get_xbl: posting proofs auto-submit bridge → %s", action[:200])
+    rom.info("get_xbl: posting proofs auto-submit bridge → %s", action[:200])
     resp = await session.post(
         action,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -488,7 +488,7 @@ async def _send_catb_ott(
         content=json.dumps(body),
         follow_redirects=True,
     )
-    log.info(
+    rom.info(
         "get_xbl: CatB SendOtt status=%s hpgid=%s body=%r",
         resp.status_code,
         tokens["hpgid"],
@@ -559,7 +559,7 @@ async def _complete_catb_with_otp(
 
     for round_i in range(1, 4):
         tokens = _scrape_catb_tokens(current_html, current_url, security_email)
-        log.info(
+        rom.info(
             "get_xbl: CatB OTP round %s proof=%s hpgid=%s",
             round_i,
             tokens["proof_opt"][:60],
@@ -602,7 +602,7 @@ async def _complete_catb_with_otp(
         if _is_live_verify_challenge(next_url, next_html):
             current_html = next_html
             current_url = next_url
-            log.info(
+            rom.info(
                 "get_xbl: CatB still on Verify after round %s → %s",
                 round_i,
                 current_url[:160],
@@ -610,7 +610,7 @@ async def _complete_catb_with_otp(
             continue
 
         # Left Verify (oauth / remind / continue) — hop loop continues SSO
-        log.info(
+        rom.info(
             "get_xbl: CatB OTP cleared after round %s → %s",
             round_i,
             next_url[:160],
@@ -635,7 +635,7 @@ async def _skip_proofs_remind(
         "ProofFreshnessAction": fields.get("ProofFreshnessAction") or "LooksGood",
         "canary": canary,
     }
-    log.info("get_xbl: proofs/remind LooksGood → %s", action[:200])
+    rom.info("get_xbl: proofs/remind LooksGood → %s", action[:200])
     return await session.post(
         action,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -654,7 +654,7 @@ async def _skip_proofs_interrupt(
 
     skip_url = _skip_url_from_html(html)
     if skip_url:
-        log.info("get_xbl: following proofs skip URL → %s", skip_url[:200])
+        rom.info("get_xbl: following proofs skip URL → %s", skip_url[:200])
         return await session.get(skip_url, follow_redirects=False)
 
     action = _extract_form_action(html, page_url)
@@ -681,7 +681,7 @@ async def _skip_proofs_interrupt(
         if canary:
             fields["canary"] = canary
 
-    log.info("get_xbl: skipping proofs interrupt via POST action=Skip → %s", action[:200])
+    rom.info("get_xbl: skipping proofs interrupt via POST action=Skip → %s", action[:200])
     return await session.post(
         action,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -716,7 +716,7 @@ async def _resolve_proofs_interrupt(
                 return bridged
             html = bridged.text or ""
             page_url = str(bridged.url)
-        log.info(
+        rom.info(
             "get_xbl: proofs bridge materialized → %s (len=%s ott=%s)",
             page_url[:160],
             len(html),
@@ -787,7 +787,7 @@ async def _follow_sisu(
             raise TransientMCError(f"sisu hop status {status}", status=status)
 
         if location and _is_proofs_interrupt(location):
-            log.info("get_xbl: redirect into proofs interrupt → %s", location[:200])
+            rom.info("get_xbl: redirect into proofs interrupt → %s", location[:200])
             verify = await session.get(urljoin(page_url, location), follow_redirects=False)
             token = _token_from_response(verify)
             if token:
@@ -817,7 +817,7 @@ async def _follow_sisu(
             location = None
         elif location:
             url = urljoin(page_url, location)
-            log.debug("get_xbl hop %s redirect → %s", hop + 1, url[:180])
+            rom.debug("get_xbl hop %s redirect → %s", hop + 1, url[:180])
             continue
 
         if status != 200 or not body:
@@ -850,7 +850,7 @@ async def _follow_sisu(
         if sso:
             action, fields = sso
             if _is_proofs_interrupt(action):
-                log.info(
+                rom.info(
                     "get_xbl: SSO form targets proofs interrupt — posting then resolving"
                 )
                 post = await session.post(
@@ -891,7 +891,7 @@ async def _follow_sisu(
                     "sisu proofs/Verify SSO did not yield accessToken after resolve"
                 )
 
-            log.info("get_xbl: submitting SSO continue form → %s", action[:180])
+            rom.info("get_xbl: submitting SSO continue form → %s", action[:180])
             post = await session.post(
                 action,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -951,7 +951,7 @@ async def _follow_sisu(
         kmsi = _kmsi_payload(body)
         if kmsi:
             url_post, sft = kmsi
-            log.info("get_xbl: KMSI finish on Xbox SSO bridge")
+            rom.info("get_xbl: KMSI finish on Xbox SSO bridge")
             post = await session.post(
                 url_post,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},

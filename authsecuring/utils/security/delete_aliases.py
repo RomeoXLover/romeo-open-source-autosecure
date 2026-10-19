@@ -160,7 +160,7 @@ async def wipe_foreign_aliases(
             page_id.group(1) if page_id else "?",
             len(html or ""),
         )
-        print("[~] - Skipping alias removal (manage page missing canary)")
+        print("[~] - [~] skip alias wipe (manage page missing canary)")
         return
 
     if not emails:

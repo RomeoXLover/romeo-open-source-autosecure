@@ -17,7 +17,7 @@ import httpx
 from authsecuring.utils.cookies.safe_cookies import has_cookie
 from authsecuring.utils.proxy import format_exception_reason
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 _TIMEOUT = httpx.Timeout(25.0, connect=10.0)
 
@@ -62,7 +62,7 @@ async def _ensure_amc_jwt_once(session: httpx.AsyncClient, *, attempt: int = 1) 
                 break
             if not loc.startswith("http"):
                 loc = urljoin(str(resp.url), loc)
-            log.info("ensure_amc_jwt hop %s → %s", hop, loc[:180])
+            rom.info("ensure_amc_jwt hop %s → %s", hop, loc[:180])
             resp = await session.get(loc, follow_redirects=False, timeout=_TIMEOUT)
             if has_amc_api_cookies(session):
                 print("[+] - AMCSecAuthJWT established (redirect chase)")
@@ -141,10 +141,10 @@ async def _ensure_amc_jwt_once(session: httpx.AsyncClient, *, attempt: int = 1) 
 
     except (httpx.TimeoutException, httpx.TransportError) as exc:
         detail = proxy_error_reason(exc)
-        log.warning("ensure_amc_jwt transport error (attempt %s): %s", attempt, detail)
+        rom.warning("ensure_amc_jwt transport error (attempt %s): %s", attempt, detail)
         print(f"[!] - ensure_amc_jwt failed ({detail}) [attempt {attempt}]")
     except Exception:
-        log.exception("ensure_amc_jwt crashed (attempt %s)", attempt)
+        rom.exception("ensure_amc_jwt crashed (attempt %s)", attempt)
 
     ok = has_amc_api_cookies(session)
     if not ok and attempt >= 2:

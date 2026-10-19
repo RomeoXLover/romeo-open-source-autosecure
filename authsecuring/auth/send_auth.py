@@ -4,7 +4,7 @@ import logging
 
 import httpx
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 async def send_auth(session: httpx.AsyncClient, email: str, proof: str = None) -> dict | None:
@@ -45,7 +45,7 @@ async def send_auth(session: httpx.AsyncClient, email: str, proof: str = None) -
     print(f"SendAuth Response: {body[:800]}")
     if not body.strip():
         # Empty body is almost always a dead proxy tunnel / MS flake — retryable.
-        log.error(
+        rom.error(
             "send_auth: empty GetCredentialType response status=%s for %s",
             send_auth.status_code,
             email,
@@ -57,7 +57,7 @@ async def send_auth(session: httpx.AsyncClient, email: str, proof: str = None) -
     try:
         email_info = send_auth.json()
     except json.JSONDecodeError as exc:
-        log.error(
+        rom.error(
             "send_auth: non-JSON GetCredentialType status=%s for %s snippet=%r",
             send_auth.status_code,
             email,

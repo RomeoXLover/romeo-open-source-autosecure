@@ -5,7 +5,7 @@ from inbox.discord_forward import schedule_forward
 import logging
 import os
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 class MailHandler:
@@ -62,5 +62,5 @@ def startServer() -> Controller:
 
     controller = Controller(MailHandler(), hostname=hostname, port=25)
     controller.start()
-    log.info(f"SMTP server listening on {hostname}:25")
+    rom.info(f"SMTP server listening on {hostname}:25")
     return controller

@@ -4,7 +4,7 @@ import json
 import logging
 import re
 
-log = logging.getLogger("bot")
+rom = logging.getLogger(__name__)
 
 
 async def enroll_mfa(session: httpx.AsyncClient) -> str:
@@ -65,7 +65,7 @@ async def enroll_mfa(session: httpx.AsyncClient) -> str:
         follow_redirects=True,
     )
     if verify.status_code >= 400:
-        log.warning(
+        rom.warning(
             "AddVerifyTotp status=%s body=%s",
             verify.status_code,
             (verify.text or "")[:200],
@@ -84,7 +84,7 @@ async def enroll_mfa(session: httpx.AsyncClient) -> str:
         await session.get(url=enable_2fa)
     else:
         # Some accounts already have TFA toggled after AddVerifyTotp
-        log.warning("EnableTfa link missing — secret may still be valid")
+        rom.warning("EnableTfa link missing — secret may still be valid")
         print("[!] - EnableTfa link missing after AddVerifyTotp (continuing with secret)")
 
     return secret_key.lower()

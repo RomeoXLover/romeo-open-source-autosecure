@@ -4,7 +4,7 @@ import httpx
 
 from authsecuring.utils.ogi.amc_headers import amc_api_headers
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 async def fetch_family(session: httpx.AsyncClient, verification_token: str):
@@ -19,7 +19,7 @@ async def fetch_family(session: httpx.AsyncClient, verification_token: str):
             follow_redirects=True,
         )
     except Exception:
-        log.exception("get_family request failed")
+        rom.exception("get_family request failed")
         return {"members": []}
 
     body = family.text or ""
@@ -28,12 +28,12 @@ async def fetch_family(session: httpx.AsyncClient, verification_token: str):
     try:
         data = family.json()
     except Exception:
-        log.warning("get_family: non-JSON status=%s", family.status_code)
+        rom.warning("get_family: non-JSON status=%s", family.status_code)
         return {"members": []}
     if not isinstance(data, dict):
         return {"members": []}
     if data.get("error") and not (data.get("members") or data.get("Members")):
-        log.warning("get_family: API error %s", data.get("error"))
+        rom.warning("get_family: API error %s", data.get("error"))
         return {"members": []}
     members = data.get("members") or data.get("Members")
     if not isinstance(members, list):

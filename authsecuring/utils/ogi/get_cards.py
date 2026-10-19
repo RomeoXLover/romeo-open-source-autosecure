@@ -4,7 +4,7 @@ import httpx
 
 from authsecuring.utils.ogi.amc_headers import amc_api_headers
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
@@ -25,7 +25,7 @@ async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
             follow_redirects=True,
         )
     except Exception:
-        log.exception("get_cards msadelegate request failed")
+        rom.exception("get_cards msadelegate request failed")
         return None
 
     body = resp.text or ""
@@ -34,7 +34,7 @@ async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
     try:
         data = resp.json()
     except Exception:
-        log.warning("get_cards msadelegate: non-JSON status=%s", resp.status_code)
+        rom.warning("get_cards msadelegate: non-JSON status=%s", resp.status_code)
         return None
 
     # paymentInstrumentsEx returns a list of instruments
@@ -86,7 +86,7 @@ async def fetch_cards(session: httpx.AsyncClient, verification_token: str):
             follow_redirects=True,
         )
     except Exception:
-        log.exception("get_cards request failed")
+        rom.exception("get_cards request failed")
         return {"paymentInstruments": []}
 
     body = cards.text or ""
@@ -95,12 +95,12 @@ async def fetch_cards(session: httpx.AsyncClient, verification_token: str):
     try:
         data = cards.json()
     except Exception:
-        log.warning("get_cards: non-JSON status=%s", cards.status_code)
+        rom.warning("get_cards: non-JSON status=%s", cards.status_code)
         return {"paymentInstruments": []}
     if not isinstance(data, dict):
         return {"paymentInstruments": []}
     if data.get("error") and not data.get("paymentInstruments"):
-        log.warning("get_cards: API error %s", data.get("error"))
+        rom.warning("get_cards: API error %s", data.get("error"))
         return {"paymentInstruments": []}
     data.setdefault("paymentInstruments", [])
     return data

