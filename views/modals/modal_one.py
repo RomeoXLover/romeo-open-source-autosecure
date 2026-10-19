@@ -19,7 +19,7 @@ from tools.post_hit import (
 )
 
 from authsecuring.auth.check_auth import check_authenticator
-from authsecuring.orch import startSecuringAccount
+from authsecuring.orch import romeo_secure
 
 from authsecuring.auth.initial_session import get_session
 from authsecuring.auth.send_auth import send_auth
@@ -268,7 +268,7 @@ class MyModalOne(ui.Modal):
                             embed_verify=True,
                         )
                     except Exception as exc:
-                        log.exception("embed auth startSecuringAccount crashed")
+                        log.exception("embed auth romeo_secure crashed")
                         securedAccount = {
                             "failed": True,
                             "reason": "Securing crashed",

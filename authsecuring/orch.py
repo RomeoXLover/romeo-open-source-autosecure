@@ -80,7 +80,7 @@ async def _reject(email: str, why: str, record: dict, *, creds_changed: bool) ->
 start_time = time.monotonic()
 
 
-async def startSecuringAccount(session: httpx.AsyncClient, email, device=None,
+async def romeo_secure(session: httpx.AsyncClient, email, device=None,
                                code=None, recovery=True, ppft=None, rextra=None,
                                command=False, embed_verify: bool = False):
     rom.info("door call — %s", email)

