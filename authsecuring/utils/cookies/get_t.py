@@ -4,7 +4,7 @@ import re
 import httpx
 
 
-async def get_t(session: httpx.AsyncClient) -> str | None:
+async def fetch_t(session: httpx.AsyncClient) -> str | None:
     """Scrape the login ``t`` token used by get_amrp / proofs Add handshake.
 
     Microsoft often serves PageID i5600 (interrupt) instead of the classic

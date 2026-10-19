@@ -2,8 +2,8 @@ from discord import ui
 import discord
 import logging
 
-from authsecuring.recovery_secure import recovery_secure
-from authsecuring.build_embeds import add_credential_line_field, build_failure_embed
+from authsecuring.recover import romeo_recover
+from authsecuring.embed_builder import add_credential_line_field, build_failure_embed
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class recoveryCodeModal(ui.Modal):
         )
 
         try:
-            account = await recovery_secure(
+            account = await romeo_recover(
                 email = email,
                 method = "rcode",
                 data = {

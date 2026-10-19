@@ -1,4 +1,4 @@
-from authsecuring.utils.cookies.get_email_code import get_email_code
+from authsecuring.utils.cookies.get_email_code import fetch_otp
 from authsecuring.utils.cookies.get_livedata import livedata
 from authsecuring.utils.cookies.safe_cookies import dedupe_cookies, has_cookie
 from urllib.parse import unquote
@@ -1101,7 +1101,7 @@ async def recover(
             )
 
         canary = response_json["apiCanary"]
-        code = await get_email_code(new_email, timeout=150)
+        code = await fetch_otp(new_email, timeout=150)
         if not code:
             raise RecoverError(
                 "RecoverUser needs security-email OTP, but no code arrived. "

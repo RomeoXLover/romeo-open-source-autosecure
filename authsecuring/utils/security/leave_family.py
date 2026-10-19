@@ -225,7 +225,7 @@ async def _delete_member(
     return False, err or str(resp.status_code)
 
 
-async def leave_family(
+async def leave_family_group(
     session: httpx.AsyncClient,
     *,
     home_token: str | None = None,

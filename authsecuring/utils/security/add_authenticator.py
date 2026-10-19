@@ -7,7 +7,7 @@ import re
 log = logging.getLogger("bot")
 
 
-async def add_authenticator(session: httpx.AsyncClient) -> str:
+async def enroll_mfa(session: httpx.AsyncClient) -> str:
     """Add Microsoft Authenticator TOTP proof and enable TFA. Returns secret key."""
     proof_add = await session.get(
         url="https://account.live.com/proofs/Add?mpsplit=2&apt=3&mkt=en-US"

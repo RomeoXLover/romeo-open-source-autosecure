@@ -1,7 +1,7 @@
 from database.database import DBConnection
-from web.models import EmailCreateRequest
+from panel.models import EmailCreateRequest
 from fastapi import APIRouter, Depends
-from web.config import require_auth, get_config
+from panel.config import require_auth, get_config
 
 router = APIRouter()
 

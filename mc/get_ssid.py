@@ -54,7 +54,7 @@ async def _get_ssid_once(xbl: str) -> str | None:
         return None
 
 
-async def get_ssid(xbl: str) -> str | None:
+async def fetch_ssid(xbl: str) -> str | None:
     return await with_retries(
         "get_ssid",
         lambda: _get_ssid_once(xbl),

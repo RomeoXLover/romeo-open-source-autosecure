@@ -1,5 +1,5 @@
-from web.routers import config_ep, auth, accounts, stats, emails, secure, shares, bot, commands
-from web.limiter import limiter
+from panel.routers import config_ep, auth, accounts, stats, emails, secure, shares, bot, commands
+from panel.limiter import limiter
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI

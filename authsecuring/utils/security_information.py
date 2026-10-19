@@ -5,7 +5,7 @@ from urllib.parse import urljoin, unquote
 
 import httpx
 
-from authsecuring.utils.cookies.get_email_code import get_email_code
+from authsecuring.utils.cookies.get_email_code import fetch_otp
 
 _PROOFS_URL = "https://account.live.com/proofs/Manage/additional"
 _MAX_BRIDGE_HOPS = 10
@@ -761,7 +761,7 @@ async def _complete_i5600_email_otc(
 
     code = None
     for i, slice_t in enumerate(slices):
-        code = await get_email_code(security_email, timeout=slice_t, since=send_started)
+        code = await fetch_otp(security_email, timeout=slice_t, since=send_started)
         if code:
             break
         if i == 0 and len(slices) > 1:
@@ -1171,7 +1171,7 @@ async def _bridge_to_proofs(
     return current, current_url, current_status
 
 
-async def security_information(
+async def gather_security_info(
     session: httpx.AsyncClient,
     *,
     security_email: str | None = None,

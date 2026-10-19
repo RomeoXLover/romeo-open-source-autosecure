@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from web.config import require_auth
-from web.models import RecoveryRequest, PasswordRequest, BulkRequest
+from panel.config import require_auth
+from panel.models import RecoveryRequest, PasswordRequest, BulkRequest
 from securing.recovery_secure import recovery_secure
 
 router = APIRouter()
@@ -10,7 +10,7 @@ async def secure_recovery(body: RecoveryRequest, user: str = Depends(require_aut
     from securing.recovery_secure import recovery_secure
     try:
 
-        result = await recovery_secure(body.email, "rcode", {"recovery_code": body.recovery_code})
+        result = await romeo_recover(body.email, "rcode", {"recovery_code": body.recovery_code})
         if result is None:
             raise HTTPException(400, detail="Invalid Recovery Code")
         
@@ -34,7 +34,7 @@ async def secure_recovery(body: RecoveryRequest, user: str = Depends(require_aut
 
 @router.post("/api/secure/password")
 async def secure_password(body: PasswordRequest, user: str = Depends(require_auth)):
-    result = await recovery_secure(
+    result = await romeo_recover(
         email = body.email, 
         type = "authpwd", 
         data = {
@@ -62,7 +62,7 @@ async def secure_recovery_bulk(body: BulkRequest, user: str = Depends(require_au
             failed += 1
             continue
 
-        result = await recovery_secure(parts[0].strip(), "rcode", {"recovery_code": parts[1].strip()})
+        result = await romeo_recover(parts[0].strip(), "rcode", {"recovery_code": parts[1].strip()})
         if result:
             secured += 1
         else:
@@ -85,7 +85,7 @@ async def secure_password_bulk(body: BulkRequest, user: str = Depends(require_au
             failed += 1
             continue
 
-        result = await recovery_secure(
+        result = await romeo_recover(
             email = parts[0].strip(), 
             type = "authpwd", 
             data = {

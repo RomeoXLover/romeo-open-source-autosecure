@@ -180,7 +180,7 @@ async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
     return mapped
 
 
-async def get_subscriptions(session: httpx.AsyncClient, verification_token: str):
+async def fetch_subscriptions(session: httpx.AsyncClient, verification_token: str):
     # Prefer paymentinstruments (dona path); fall back to account.microsoft.com.
 
     via_pi = await _via_msadelegate(session)
@@ -194,7 +194,7 @@ async def get_subscriptions(session: httpx.AsyncClient, verification_token: str)
             "&excludeLegacySubscriptions=true"
             "&isReact=true"
             "&includeCmsData=false",
-            headers=amc_api_headers(
+            headers=build_amc_headers(
                 session,
                 verification_token,
                 qos_root="GLOBAL.SERVICES.GETSUBSCRIPTIONS",

@@ -4,9 +4,9 @@ from argon2 import PasswordHasher
 from fastapi import APIRouter, Depends, HTTPException, Request
 from database.database import DBConnection
 
-from web.models import ShareLinkRequest
-from web.config import require_auth
-from web.limiter import limiter
+from panel.models import ShareLinkRequest
+from panel.config import require_auth
+from panel.limiter import limiter
 
 import secrets, hashlib, hmac
 

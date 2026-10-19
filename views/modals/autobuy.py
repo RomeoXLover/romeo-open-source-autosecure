@@ -7,7 +7,7 @@ import discord
 
 from storage.romeo_db import RomeoDB as DBConnection
 from store.ltc_wallet import is_valid_ltc_address
-from authsecuring.recovery_secure import recovery_secure
+from authsecuring.recover import romeo_recover
 
 logger = logging.getLogger("bot")
 
@@ -958,7 +958,7 @@ async def _autobuy_sell_callback(
             email, secure_data = parsed
             seller_rc = (secure_data.get("recovery_code") or "").strip()
             try:
-                account = await recovery_secure(
+                account = await romeo_recover(
                     email,
                     secure_method,
                     secure_data,
@@ -1009,7 +1009,7 @@ async def _autobuy_sell_callback(
                         or ms.get("security_email")
                         or ms.get("password")
                     ):
-                        from authsecuring.build_embeds import build_failure_embed
+                        from authsecuring.embed_builder import build_failure_embed
 
                         fail_embed = build_failure_embed(
                             ms.get("original_email") or email,

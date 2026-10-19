@@ -7,7 +7,7 @@ import httpx
 from authsecuring.utils.cookies.safe_cookies import get_cookie
 
 
-def amc_api_headers(
+def build_amc_headers(
     session: httpx.AsyncClient,
     verification_token: str | None,
     *,

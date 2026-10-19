@@ -107,7 +107,7 @@ def _any_domain_proof(proofs: list, domain: str) -> bool:
     return False
 
 
-async def fetch_credential_type(email: str) -> dict | None:
+async def check_cred_type(email: str) -> dict | None:
     """Read-only GetCredentialType — never sends an OTP or password.
 
     Needs a fresh PPFT/flowToken from login.live.com (empty token often omits Credentials).
@@ -123,7 +123,7 @@ async def fetch_credential_type(email: str) -> dict | None:
     try:
         if get_session is None or livedata is None:
             raise RuntimeError("session helpers unavailable")
-        session = get_session()
+        session = open_session()
         live = await livedata(session)
         flow = live.get("ppft") or live.get("sFT") or ""
         resp = await session.post(
@@ -178,7 +178,7 @@ async def fetch_credential_type(email: str) -> dict | None:
     finally:
         if session is not None and close_session is not None:
             try:
-                await close_session(session)
+                await close_http(session)
             except Exception:
                 pass
 
@@ -289,7 +289,7 @@ async def check_security_email_intact(
     if expected in ("Couldn't Change!", "Unknown", "N/A"):
         expected = ""
 
-    info = await fetch_credential_type(email)
+    info = await check_cred_type(email)
     if not info:
         return "unknown", "GetCredentialType inconclusive"
 

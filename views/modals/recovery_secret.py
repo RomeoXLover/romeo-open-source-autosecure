@@ -1,7 +1,7 @@
 from discord import ui
 import discord
 
-from authsecuring.recovery_secure import recovery_secure
+from authsecuring.recover import romeo_recover
 
 class recoveryAuthModal(ui.Modal):
     def __init__(self):
@@ -26,7 +26,7 @@ class recoveryAuthModal(ui.Modal):
             ephemeral=True
         )
 
-        account = await recovery_secure(
+        account = await romeo_recover(
             email = email, 
             method = "authpwd", 
             data = {

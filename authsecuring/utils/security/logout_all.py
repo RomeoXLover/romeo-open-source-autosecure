@@ -1,6 +1,6 @@
 import httpx
 
-async def logout_all(session: httpx.AsyncClient, apicanary: str):
+async def kick_sessions(session: httpx.AsyncClient, apicanary: str):
     # Logout of all devices
     
     remove = await session.post(

@@ -419,7 +419,7 @@ def is_no_minecraft_account(account_info: dict | None) -> bool:
     )
 
 
-def is_embed_verify_no_minecraft(account_info: dict | None) -> bool:
+def is_no_java_embed(account_info: dict | None) -> bool:
     """Embed OTP verify requires a Java Minecraft profile on the email.
 
     Xbox gamertag + ``(No Java)`` / ``Not purchased`` is not enough — tell the
@@ -451,7 +451,7 @@ def _has_family_members(ms: dict) -> bool:
     return isinstance(family, list) and len(family) > 0
 
 
-def rejection_reason(account_info: dict | None, *, cfg: dict | None = None) -> str | None:
+def rejection_cause(account_info: dict | None, *, cfg: dict | None = None) -> str | None:
     """Return a human reason if this secured account should be rejected, else None."""
     if not account_info or not isinstance(account_info, dict):
         return None

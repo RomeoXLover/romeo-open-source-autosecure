@@ -1,6 +1,6 @@
-from web.config import verify_password, verify_totp, issue_token, require_auth, get_config, COOKIE_NAME, COOKIE_SECURE, TOKEN_TTL_HOURS
-from web.limiter import limiter
-from web.models import LoginRequest, ChangePasswordRequest, Setup2FARequest
+from panel.config import verify_password, verify_totp, issue_token, require_auth, get_config, COOKIE_NAME, COOKIE_SECURE, TOKEN_TTL_HOURS
+from panel.limiter import limiter
+from panel.models import LoginRequest, ChangePasswordRequest, Setup2FARequest
 from fastapi import APIRouter, Depends, Request, Response, HTTPException
 import json
 
@@ -95,7 +95,7 @@ def twofa_status(user: str = Depends(require_auth)):
 
 
 @router.post("/api/auth/remove-2fa")
-def remove_2fa(user: str = Depends(require_auth)):
+def drop_2fa(user: str = Depends(require_auth)):
     config = get_config()["main"]
     config["web"]["credentials"].pop("totp_secret", None)
     

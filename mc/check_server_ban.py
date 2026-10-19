@@ -267,7 +267,7 @@ def _ssid_from_account(account: dict) -> str | None:
     return str(ssid)
 
 
-async def apply_ban_checks(account: dict) -> str | None:
+async def run_ban_sweep(account: dict) -> str | None:
     """Run enabled Hypixel/DonutSMP ban checks. Return reject reason or None."""
     toggles = _reject_toggles()
     wanted = []

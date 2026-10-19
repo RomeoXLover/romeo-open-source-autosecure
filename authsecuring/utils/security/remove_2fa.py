@@ -1,7 +1,7 @@
 import httpx
 import logging
 
-async def remove_2fa(session: httpx.AsyncClient, apicanary: str):
+async def drop_2fa(session: httpx.AsyncClient, apicanary: str):
     # Disables 2FA
     
     remove = await session.post(

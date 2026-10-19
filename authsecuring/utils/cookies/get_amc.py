@@ -30,7 +30,7 @@ async def scrape_token(session: httpx.AsyncClient, url: str) -> str | None:
         logging.warning(
             "get_amc scrape_token transport error on %s: %s",
             url,
-            format_exception_reason(exc),
+            proxy_error_reason(exc),
         )
         return None
 
@@ -46,7 +46,7 @@ async def scrape_token(session: httpx.AsyncClient, url: str) -> str | None:
     return token.group(1)
 
 
-async def get_amc(session: httpx.AsyncClient) -> dict:
+async def fetch_amc_token(session: httpx.AsyncClient) -> dict:
     """Gets AMCSecAuthJWT and scrapes RequestVerificationTokens per page.
 
     Retries on proxy/timeout flakes — a single ReadTimeout used to abort the
@@ -70,10 +70,10 @@ async def get_amc(session: httpx.AsyncClient) -> dict:
                 logging.warning(
                     "get_amc: account.microsoft.com failed (attempt %s): %s",
                     attempt,
-                    format_exception_reason(exc),
+                    proxy_error_reason(exc),
                 )
                 print(
-                    f"[!] - get_amc home failed ({format_exception_reason(exc)}) "
+                    f"[!] - get_amc home failed ({proxy_error_reason(exc)}) "
                     f"[attempt {attempt}/3]"
                 )
                 last_exc = exc
@@ -110,10 +110,10 @@ async def get_amc(session: httpx.AsyncClient) -> dict:
             await asyncio.sleep(1.2 * attempt)
         except Exception as exc:
             last_exc = exc
-            detail = format_exception_reason(exc)
+            detail = proxy_error_reason(exc)
             print(f"[X] - get_amc failed: {detail} [attempt {attempt}/3]")
             logging.warning("get_amc attempt %s failed: %s", attempt, detail)
-            if not is_proxy_transport_error(exc) and attempt >= 2:
+            if not is_network_glitch(exc) and attempt >= 2:
                 raise
             await asyncio.sleep(1.2 * attempt)
 

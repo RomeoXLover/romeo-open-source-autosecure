@@ -5,13 +5,13 @@ import httpx
 log = logging.getLogger(__name__)
 
 
-async def get_owner_info(session: httpx.AsyncClient, verification_token: str):
+async def fetch_owner(session: httpx.AsyncClient, verification_token: str):
     # Uses Profile RequestVerificationToken; falls back to AMC JWT claims.
 
     from authsecuring.utils.ogi.owner_from_jwt import owner_info_from_amc_jwt
     from authsecuring.utils.ogi.amc_headers import amc_api_headers
 
-    headers = amc_api_headers(
+    headers = build_amc_headers(
         session,
         verification_token,
         qos_root="GLOBAL.PROFILE.PERSONALINFO.GETPERSONALINFO",
@@ -24,12 +24,12 @@ async def get_owner_info(session: httpx.AsyncClient, verification_token: str):
         )
     except Exception:
         log.exception("get_owner_info request failed")
-        return owner_info_from_amc_jwt(session)
+        return jwt_to_owner(session)
 
     body = get_info.text or ""
     if not body.strip():
         log.warning("get_owner_info: empty status=%s", get_info.status_code)
-        return owner_info_from_amc_jwt(session)
+        return jwt_to_owner(session)
 
     try:
         data = get_info.json()
@@ -39,10 +39,10 @@ async def get_owner_info(session: httpx.AsyncClient, verification_token: str):
             get_info.status_code,
             body[:200],
         )
-        return owner_info_from_amc_jwt(session)
+        return jwt_to_owner(session)
 
     if not isinstance(data, dict):
-        return owner_info_from_amc_jwt(session)
+        return jwt_to_owner(session)
 
     # API returns {"error":"getPersonalInfoFailed"} when AMC session is incomplete
     if data.get("error") and not data.get("firstName") and not data.get("signInEmail"):
@@ -51,6 +51,6 @@ async def get_owner_info(session: httpx.AsyncClient, verification_token: str):
             get_info.status_code,
             data.get("error"),
         )
-        return owner_info_from_amc_jwt(session)
+        return jwt_to_owner(session)
 
     return data

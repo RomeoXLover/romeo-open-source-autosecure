@@ -56,7 +56,7 @@ def _is_skippable_notification(subject: str | None, body: str) -> bool:
     return False
 
 
-async def get_email_code(
+async def fetch_otp(
     mail: str,
     timeout: float = 120,
     *,

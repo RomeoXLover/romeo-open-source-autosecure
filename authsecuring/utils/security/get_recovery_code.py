@@ -1,4 +1,4 @@
-from authsecuring.utils.cookies.get_email_code import get_email_code
+from authsecuring.utils.cookies.get_email_code import fetch_otp
 
 import urllib.parse
 import logging
@@ -41,7 +41,7 @@ async def generate_code(session: httpx.AsyncClient, apicanary: str,  eni: str) -
 
     return response
 
-async def get_recovery_code(session: httpx.AsyncClient, apicanary: str, eni: str):
+async def mint_recovery(session: httpx.AsyncClient, apicanary: str, eni: str):
     # Generates a new recovery code
     response = await generate_code(session, apicanary, eni)
 
@@ -87,7 +87,7 @@ async def get_recovery_code(session: httpx.AsyncClient, apicanary: str, eni: str
                 "hpgid": 201030
             }
         )
-        code = await get_email_code(email)
+        code = await fetch_otp(email)
 
         # Verify mail
         await session.post(

@@ -1,6 +1,6 @@
 from database.database import DBConnection
 from fastapi import APIRouter, Depends
-from web.config import require_auth
+from panel.config import require_auth
 
 router = APIRouter()
 

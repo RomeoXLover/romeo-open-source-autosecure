@@ -7,11 +7,11 @@ from authsecuring.utils.ogi.amc_headers import amc_api_headers
 log = logging.getLogger(__name__)
 
 
-async def get_family(session: httpx.AsyncClient, verification_token: str):
+async def fetch_family(session: httpx.AsyncClient, verification_token: str):
     try:
         family = await session.get(
             "https://account.microsoft.com/home/api/family/family-summary",
-            headers=amc_api_headers(
+            headers=build_amc_headers(
                 session,
                 verification_token,
                 qos_root="GLOBAL.HOME.FAMILY.GETFAMILYSUMMARY",

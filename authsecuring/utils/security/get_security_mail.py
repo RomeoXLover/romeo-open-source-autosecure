@@ -1,7 +1,7 @@
 import httpx
 import re
 
-async def get_security_email(session: httpx.AsyncClient) -> str:
+async def fetch_security_mail(session: httpx.AsyncClient) -> str:
     # Gets the security mail from the account
     
     proofs = await session.get(

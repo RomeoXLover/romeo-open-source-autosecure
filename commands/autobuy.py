@@ -7,7 +7,7 @@ from views.buttons.autobuy import AutobuyView, build_autobuy_embed, refresh_auto
 from views.modals.autobuy import _dm_owners
 from store.ltc_wallet import get_ltc_wallet
 from storage.romeo_db import RomeoDB as DBConnection
-from authsecuring.autobuy_hold_check import process_due_hold_checks
+from authsecuring.holdcheck import process_due_hold_checks
 
 bot_config = json.load(open("config/bot.json", "r"))
 name = bot_config["enabled_commands"]["aliases"]["autobuy"]

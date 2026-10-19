@@ -50,7 +50,7 @@ PROXY_TRANSPORT_ERRORS = (
 )
 
 
-def is_proxy_transport_error(exc: BaseException) -> bool:
+def is_network_glitch(exc: BaseException) -> bool:
     """True if this error (or a wrapped __cause__) is a proxy/network flake."""
     cur: BaseException | None = exc
     seen: set[int] = set()
@@ -72,7 +72,7 @@ def unwrap_exception(exc: BaseException) -> BaseException:
     return cur
 
 
-def format_exception_reason(exc: BaseException) -> str:
+def proxy_error_reason(exc: BaseException) -> str:
     """Human-readable exception text — httpx timeouts often have empty ``str(exc)``.
 
     Without this, Discord showed ``Securing step failed:`` with nothing after the colon.
@@ -249,7 +249,7 @@ def build_proxy_url() -> str | None:
 
 
 def session_proxy_url(session: httpx.AsyncClient | None) -> str | None:
-    """Sticky proxy URL attached to a ``get_session()`` client, if any."""
+    """Sticky proxy URL attached to a ``open_session()`` client, if any."""
     if session is None:
         return None
     url = getattr(session, "_autosecure_proxy_url", None)
@@ -261,7 +261,7 @@ def session_proxy_url(session: httpx.AsyncClient | None) -> str | None:
 def microsoft_proxy_url(session: httpx.AsyncClient | None = None) -> str | None:
     """Proxy URL for login.live.com / account.live.com.
 
-    Reuses the login sticky when ``session`` was created by ``get_session()``.
+    Reuses the login sticky when ``session`` was created by ``open_session()``.
     Otherwise mints a new sticky. Returns None only when proxy is disabled.
     """
     url = session_proxy_url(session)
@@ -339,7 +339,7 @@ class LiveXboxSplitTransport(httpx.AsyncBaseTransport):
         await self._direct.aclose()
 
 
-async def close_session(session: httpx.AsyncClient | None) -> None:
+async def close_http(session: httpx.AsyncClient | None) -> None:
     if session is None:
         return
     try:
@@ -399,8 +399,8 @@ async def run_with_proxy_retry(
             if attempt >= attempts:
                 break
 
-            await close_session(current)
-            # get_session() always mints a fresh SSID when rotate_ssid is enabled;
+            await close_http(current)
+            # open_session() always mints a fresh SSID when rotate_ssid is enabled;
             # after rotate_ssid_after we call it again so the sticky exit changes.
             current = new_session()
             delay = 1.0 * attempt if not rotate else 1.5 * attempt

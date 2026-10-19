@@ -2,7 +2,7 @@ import secrets
 import string
 
 
-def generate_ms_password(length: int = 14) -> str:
+def make_ms_password(length: int = 14) -> str:
     """Letters + digits only, with mixed case (Microsoft complexity).
 
     Upstream Sal/autosecure used uuid.hex (lowercase only). Live tests show

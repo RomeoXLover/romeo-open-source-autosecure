@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 _UNVERIFIED_RE = re.compile(r"\s*\(UNVERIFIED[^)]*\)\s*$")
 
 
-def strip_unverified(password: str | None) -> str:
+def clean_password(password: str | None) -> str:
     return _UNVERIFIED_RE.sub("", password or "").strip()
 
 
@@ -36,13 +36,13 @@ def _login_email(ms: dict) -> str:
 
 async def _fresh_verify(email: str, password: str, *, settle_delay: float) -> str:
     """Verify on a clean login.live.com session (not the authenticated jar)."""
-    probe = get_session()
+    probe = open_session()
     try:
         return await verify_password_works(
             probe, email, password, settle_delay=settle_delay
         )
     finally:
-        await close_session(probe)
+        await close_http(probe)
 
 
 async def force_password_via_otp(
@@ -58,7 +58,7 @@ async def force_password_via_otp(
     """
     from authsecuring.utils.proxy import microsoft_proxy_url
 
-    pwd = strip_unverified(preferred_password) or generate_ms_password(16)
+    pwd = clean_password(preferred_password) or make_ms_password(16)
     if not email or not security_email:
         return pwd, False
 
@@ -75,7 +75,7 @@ async def force_password_via_otp(
 
     if not ok:
         # One retry with a fresh password (banned / contested edge cases)
-        pwd = generate_ms_password(16)
+        pwd = make_ms_password(16)
         print("[~] - OTP ResetPassword retry with fresh password…")
         try:
             ok = await reset_password_via_security_email_otp(
@@ -123,7 +123,7 @@ async def force_password_after_recover(
 
     Returns ``(password, recovery_code, verified_ok)``.
     """
-    pwd = strip_unverified(preferred_password) or generate_ms_password(16)
+    pwd = clean_password(preferred_password) or make_ms_password(16)
     rc = (recovery_code or "").strip()
     if not email or not security_email:
         return pwd, rc, False
@@ -145,7 +145,7 @@ async def force_password_after_recover(
 
     for attempt in range(1, max_attempts + 1):
         if attempt > 1 or not preferred_password:
-            pwd = generate_ms_password(16)
+            pwd = make_ms_password(16)
         print(
             f"[~] - Force password via RecoverUser "
             f"(attempt {attempt}/{max_attempts}, len={len(pwd)})..."
@@ -206,7 +206,7 @@ async def force_password_after_recover(
     return pwd, rc, False
 
 
-async def ensure_password_verified(
+async def verify_password_stuck(
     session: httpx.AsyncClient,
     account_info: dict,
     *,
@@ -221,7 +221,7 @@ async def ensure_password_verified(
     """
     ms = account_info.get("microsoft") or {}
     raw = str(ms.get("password") or "")
-    clean = strip_unverified(raw)
+    clean = clean_password(raw)
     marked = "UNVERIFIED" in raw
 
     email = _login_email(ms)
@@ -261,7 +261,7 @@ async def ensure_password_verified(
             account_info["microsoft"] = ms
             return False
 
-        pwd = clean or generate_ms_password(16)
+        pwd = clean or make_ms_password(16)
 
         # 1) Authenticated ChangePassword (needs real Change-page ticket)
         if force_if_unverified or force_if_bad:
@@ -343,7 +343,7 @@ async def try_clear_unverified_password(
     account_info: dict,
 ) -> bool:
     """If microsoft.password is UNVERIFIED (or verify-bad), retry until verified."""
-    return await ensure_password_verified(
+    return await verify_password_stuck(
         session,
         account_info,
         force_if_unverified=True,

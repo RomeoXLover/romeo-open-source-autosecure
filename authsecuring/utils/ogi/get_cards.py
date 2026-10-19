@@ -70,7 +70,7 @@ async def _via_msadelegate(session: httpx.AsyncClient) -> dict | None:
     return None
 
 
-async def get_cards(session: httpx.AsyncClient, verification_token: str):
+async def fetch_cards(session: httpx.AsyncClient, verification_token: str):
     via_pi = await _via_msadelegate(session)
     if via_pi is not None:
         return via_pi
@@ -78,7 +78,7 @@ async def get_cards(session: httpx.AsyncClient, verification_token: str):
     try:
         cards = await session.get(
             "https://account.microsoft.com/home/api/payment-instruments/pi-summary",
-            headers=amc_api_headers(
+            headers=build_amc_headers(
                 session,
                 verification_token,
                 qos_root="GLOBAL.HOME.PAYMENTINSTRUMENTS.GETPAYMENTINSTRUMENTSSUMMARY",

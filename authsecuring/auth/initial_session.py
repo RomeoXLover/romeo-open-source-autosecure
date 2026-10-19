@@ -5,7 +5,7 @@ from authsecuring.utils.cookies.safe_cookies import dedupe_cookies
 from authsecuring.utils.proxy import build_proxy_url
 
 
-def get_session(cookies: httpx.Cookies | None = None, user_agent: str | None = None) -> httpx.AsyncClient:
+def open_session(cookies: httpx.Cookies | None = None, user_agent: str | None = None) -> httpx.AsyncClient:
     # Persistent session that handles cookies automatically.
     # Response hook collapses duplicate MSCC/etc so httpx never raises CookieConflict.
     # Each call mints a fresh sticky proxy SSID (60m) when proxy is enabled.
@@ -36,7 +36,7 @@ def get_session(cookies: httpx.Cookies | None = None, user_agent: str | None = N
     return client
 
 
-def clone_session_new_proxy(old: httpx.AsyncClient) -> httpx.AsyncClient:
+def clone_with_fresh_proxy(old: httpx.AsyncClient) -> httpx.AsyncClient:
     """New sticky proxy exit, same Microsoft cookies.
 
     Dead tunnels rarely recover — get_amc was retrying 3× on the same proxy
@@ -50,4 +50,4 @@ def clone_session_new_proxy(old: httpx.AsyncClient) -> httpx.AsyncClient:
         ua = old.headers.get("User-Agent")
     except Exception:
         ua = None
-    return get_session(cookies=_copy_cookies(old), user_agent=ua)
+    return open_session(cookies=_copy_cookies(old), user_agent=ua)

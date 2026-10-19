@@ -4,7 +4,7 @@ from minecraft.get_donut import get_donut_stats
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from database.database import DBConnection
-from web.config import require_auth
+from panel.config import require_auth
 from datetime import datetime
 import json
 import time

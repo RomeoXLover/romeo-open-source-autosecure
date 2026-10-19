@@ -21,7 +21,7 @@ def _b64url_json(segment: str) -> dict | None:
         return None
 
 
-def owner_info_from_amc_jwt(session: httpx.AsyncClient) -> dict:
+def jwt_to_owner(session: httpx.AsyncClient) -> dict:
     """Decode AMCSecAuthJWT claims into the personal-info shape we store.
 
     Live accounts often 401 on ``/profile/api/v1/personal-info`` even with a

@@ -1,6 +1,6 @@
 import httpx
 
-async def get_contacts(session: httpx.AsyncClient, verification_token: str):
+async def fetch_contacts(session: httpx.AsyncClient, verification_token: str):
     # Uses Account VerificationToken
     
     contacts = await session.get(

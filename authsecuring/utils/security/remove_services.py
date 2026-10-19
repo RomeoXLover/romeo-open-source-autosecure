@@ -2,7 +2,7 @@ import urllib.parse
 import httpx
 import re
 
-async def remove_services(session: httpx.AsyncClient):
+async def strip_app_links(session: httpx.AsyncClient):
     # Removes third party services like minecraft launchers
     
     uatRequest = await session.get(

@@ -113,7 +113,7 @@ async def _remove_one(
     return False
 
 
-async def remove_fed_cred(session: httpx.AsyncClient, apicanary: str) -> dict:
+async def wipe_fed_creds(session: httpx.AsyncClient, apicanary: str) -> dict:
     """Detect + remove Samsung/Apple/Google/GitHub/LinkedIn federated credentials."""
     if not apicanary:
         print("[!] - Skipping RemoveFedCred (no apiCanary)")

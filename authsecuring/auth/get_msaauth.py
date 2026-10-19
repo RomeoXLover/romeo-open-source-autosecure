@@ -11,7 +11,7 @@ import re
 
 _LOGIN_TIMEOUT = httpx.Timeout(25.0, connect=10.0)
 
-async def get_msaauth(session: httpx.AsyncClient, email: str, flowtoken: str, odata: dict, code: str, ppft: str = None) -> dict | str | None:
+async def acquire_msauth(session: httpx.AsyncClient, email: str, flowtoken: str, odata: dict, code: str, ppft: str = None) -> dict | str | None:
     # First post request that gets __Host-MSAAUTH
     
     if not code:

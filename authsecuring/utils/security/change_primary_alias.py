@@ -244,7 +244,7 @@ async def _submit_auth_redirect(session: httpx.AsyncClient, html: str) -> str | 
     return resp.text or ""
 
 
-async def _get_manage(session: httpx.AsyncClient) -> tuple[str, str | None, list[str]]:
+async def fetch_manage_page(session: httpx.AsyncClient) -> tuple[str, str | None, list[str]]:
     """GET names/manage → (html, canary, emails). Handles auth/redirect bounce once."""
     resp = await session.get(
         "https://account.live.com/names/manage",
@@ -420,7 +420,7 @@ async def _add_outlook_alias(
                 canary = canary2
 
         # After auth/redirect, refresh manage + retry AddAssocId
-        _, canary2, emails2 = await _get_manage(session)
+        _, canary2, emails2 = await fetch_manage_page(session)
         if full.lower() in emails2:
             print(f"[+] - Added alias ({full}) — confirmed after auth/redirect")
             return True
@@ -451,14 +451,14 @@ async def _add_outlook_alias(
             if resp.status_code in (301, 302, 303) and loc2:
                 hop = await session.get(loc2, follow_redirects=True)
                 await _submit_auth_redirect(session, hop.text or "")
-                _, _, emails3 = await _get_manage(session)
+                _, _, emails3 = await fetch_manage_page(session)
                 if full.lower() in emails3:
                     print(f"[+] - Added alias ({full}) — confirmed after 2nd auth/redirect")
                     return True
 
     # Always verify via names/manage — HTML error strings are noisy false positives
     # (old bug: "not available"/"can't add" in chrome → skip MakePrimary → delete alias).
-    _, _, emails = await _get_manage(session)
+    _, _, emails = await fetch_manage_page(session)
     if full.lower() in emails:
         print(f"[+] - Added alias ({full}) — confirmed on names/manage")
         return True
@@ -494,9 +494,9 @@ async def _gct_exists(email: str) -> bool | None:
     if not email or "@" not in email:
         return None
     try:
-        from authsecuring.autobuy_hold_check import fetch_credential_type
+        from authsecuring.holdcheck import fetch_credential_type
 
-        info = await fetch_credential_type(email)
+        info = await check_cred_type(email)
     except Exception as exc:
         logger.warning("GCT exists-check failed for %s: %s", email, exc)
         return None
@@ -510,7 +510,7 @@ async def _gct_exists(email: str) -> bool | None:
     return None
 
 
-async def _confirm_primary_switched(
+async def confirm_primary_moved(
     session: httpx.AsyncClient,
     new_full: str,
     old_email: str | None,
@@ -529,7 +529,7 @@ async def _confirm_primary_switched(
 
     try:
         await asyncio.sleep(1.0)
-        html, _, aliases = await _get_manage(session)
+        html, _, aliases = await fetch_manage_page(session)
         aliases_l = {a.strip().lower() for a in aliases}
         member = _signin_name_from_manage(html)
         page_has_mp = bool(re.search(r"ShowMakePrimary\s*\(", html or "", re.I))
@@ -806,7 +806,7 @@ async def _elevate_for_names_manage(
 
     if not needs_i5600 and not needs_oauth:
         # Re-hit manage after form chasing
-        return await _get_manage(session)
+        return await fetch_manage_page(session)
 
     if not security_email or security_email in ("Couldn't Change!", "Unknown"):
         print("[X] - names/manage blocked by SA elevation and no security email")
@@ -830,10 +830,10 @@ async def _elevate_for_names_manage(
         return text, None, _emails_from_manage(text)
 
     await _follow_post_auth_forms(session, resp.text or "", str(getattr(resp, "url", "")))
-    return await _get_manage(session)
+    return await fetch_manage_page(session)
 
 
-async def change_primary_alias(
+async def promote_alias(
     session: httpx.AsyncClient,
     email: str,
     apicanary: str,
@@ -857,7 +857,7 @@ async def change_primary_alias(
             print(f"[X] - Failed to change primary alias ({full}) — no apicanary")
             return False
 
-        html, canary, before = await _get_manage(session)
+        html, canary, before = await fetch_manage_page(session)
         if not canary or not _is_names_manage_html(html):
             html, canary, before = await _elevate_for_names_manage(
                 session,
@@ -925,7 +925,7 @@ async def change_primary_alias(
             )
             if not added:
                 # One retry with a fresh manage canary
-                _, canary2, emails2 = await _get_manage(session)
+                _, canary2, emails2 = await fetch_manage_page(session)
                 if full.lower() in emails2:
                     print(f"[+] - Alias present after add attempt ({full})")
                 elif canary2:
@@ -949,7 +949,7 @@ async def change_primary_alias(
         for promo_try in range(1, 4):
             tokens: dict[str, str | None] = {}
             try:
-                html_m, manage_canary, on_manage = await _get_manage(session)
+                html_m, manage_canary, on_manage = await fetch_manage_page(session)
                 tokens = _tokens_from_html(html_m)
                 api_canary = tokens.get("api_canary") or manage_canary or apicanary
                 if api_canary:
@@ -971,17 +971,17 @@ async def change_primary_alias(
             )
             if ok:
                 break
-            if await _confirm_primary_switched(session, full, account_email):
+            if await confirm_primary_moved(session, full, account_email):
                 return True
             await asyncio.sleep(1.5 * promo_try)
 
         # Final ground-truth — never trust MakePrimary JSON alone (sale2026025 case:
         # API reported fail, old Outlook deleted, sunny* became the only login).
-        if await _confirm_primary_switched(session, full, account_email):
+        if await confirm_primary_moved(session, full, account_email):
             return True
 
         if ok:
-            _, _, after = await _get_manage(session)
+            _, _, after = await fetch_manage_page(session)
             if full.lower() in {a.lower() for a in after}:
                 return True
             logger.warning(
@@ -998,7 +998,7 @@ async def change_primary_alias(
         logger.exception("Error changing primary alias: %s", e)
         # Last-chance: MakePrimary may have thrown after MS already switched
         try:
-            if await _confirm_primary_switched(session, full, account_email):
+            if await confirm_primary_moved(session, full, account_email):
                 return True
         except Exception:
             pass

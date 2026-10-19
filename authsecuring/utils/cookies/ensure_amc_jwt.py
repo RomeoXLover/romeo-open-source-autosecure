@@ -140,7 +140,7 @@ async def _ensure_amc_jwt_once(session: httpx.AsyncClient, *, attempt: int = 1) 
             return True
 
     except (httpx.TimeoutException, httpx.TransportError) as exc:
-        detail = format_exception_reason(exc)
+        detail = proxy_error_reason(exc)
         log.warning("ensure_amc_jwt transport error (attempt %s): %s", attempt, detail)
         print(f"[!] - ensure_amc_jwt failed ({detail}) [attempt {attempt}]")
     except Exception:

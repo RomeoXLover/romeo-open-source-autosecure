@@ -210,7 +210,7 @@ async def _fetch_entitlements_once(ssid: str) -> dict[str, Any]:
         return result
 
 
-async def get_method_details(ssid: str) -> dict[str, Any]:
+async def fetch_method(ssid: str) -> dict[str, Any]:
     """Full classification dict (method, sources, item summary)."""
     details = await with_retries(
         "get_method_details",
@@ -235,5 +235,5 @@ async def get_method_details(ssid: str) -> dict[str, Any]:
 
 async def get_method(ssid: str) -> str | None:
     """Back-compat: return 'Purchased' | 'Gamepass' | None."""
-    details = await get_method_details(ssid)
+    details = await fetch_method(ssid)
     return details.get("method")

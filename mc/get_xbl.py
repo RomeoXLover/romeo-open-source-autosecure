@@ -551,7 +551,7 @@ async def _complete_catb_with_otp(
     security_email: str,
 ) -> httpx.Response:
     """SendOtt → OTP → VerifyProof, repeating once if orc/rc bounce."""
-    from authsecuring.utils.cookies.get_email_code import get_email_code
+    from authsecuring.utils.cookies.get_email_code import fetch_otp
 
     current_html = html
     current_url = page_url
@@ -567,7 +567,7 @@ async def _complete_catb_with_otp(
         )
         since = time.time()
         await _send_catb_ott(session, tokens, current_url)
-        code = await get_email_code(security_email, timeout=90, since=since)
+        code = await fetch_otp(security_email, timeout=90, since=since)
         if not code:
             raise TransientMCError(
                 f"CatB OTP did not arrive at {security_email} (round {round_i})"
@@ -986,7 +986,7 @@ async def _get_xbl_once(
     return await _follow_sisu(session, security_email=security_email)
 
 
-async def get_xbl(
+async def fetch_xbl(
     session: httpx.AsyncClient,
     security_email: str | None = None,
 ) -> dict | None:

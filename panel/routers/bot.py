@@ -1,6 +1,6 @@
-from web.models import OwnerAddRequest, BotStatusRequest, AutosecureRequest, VerificationEmbedRequest, PostVerificationRequest, PostVerificationAction, AuthEmbedsRequest, AfterVerifyEmbedRequest, BeforeAuthEmbedRequest, UpdateChannelRequest, UpdateTokenRequest, VerificationButtonRequest
+from panel.models import OwnerAddRequest, BotStatusRequest, AutosecureRequest, VerificationEmbedRequest, PostVerificationRequest, PostVerificationAction, AuthEmbedsRequest, AfterVerifyEmbedRequest, BeforeAuthEmbedRequest, UpdateChannelRequest, UpdateTokenRequest, VerificationButtonRequest
 from fastapi import APIRouter, Depends, HTTPException
-from web.config import require_auth, get_config
+from panel.config import require_auth, get_config
 import httpx
 import json
 import os

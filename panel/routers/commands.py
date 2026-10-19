@@ -1,5 +1,5 @@
-from web.models import RealCommandsRequest, FakeCommandRequest, RenameCommandRequest
-from web.config import require_auth, get_config
+from panel.models import RealCommandsRequest, FakeCommandRequest, RenameCommandRequest
+from panel.config import require_auth, get_config
 from fastapi import APIRouter, Depends, HTTPException
 import json, os, re, random, string
 

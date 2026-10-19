@@ -1,7 +1,7 @@
 from discord import ui
 import discord
 
-from authsecuring.recovery_secure import recovery_secure
+from authsecuring.recover import romeo_recover
 from views.modals.bulk_utils import run_bulk_parallel
 
 
@@ -37,7 +37,7 @@ class BulkRecoveryCodeModal(ui.Modal):
             email, recovery_code = parts[0].strip(), parts[1].strip()
             jobs.append((
                 email,
-                lambda e=email, rc=recovery_code, **kwargs: recovery_secure(
+                lambda e=email, rc=recovery_code, **kwargs: romeo_recover(
                     e, "rcode", {"recovery_code": rc}, **kwargs
                 ),
             ))

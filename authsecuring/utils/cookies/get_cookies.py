@@ -41,7 +41,7 @@ def json_unescape(raw: str) -> str:
         return raw.replace("\\/", "/").replace('\\"', '"')
 
 
-async def get_cookies(session: httpx.AsyncClient) -> str | None:
+async def fetch_canary(session: httpx.AsyncClient) -> str | None:
     """Scrape apiCanary for SA elevation APIs.
 
     Returns None instead of crashing when password/reset has no canary

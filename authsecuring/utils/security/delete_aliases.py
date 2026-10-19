@@ -120,7 +120,7 @@ async def _post_remove(
     )
 
 
-async def delete_aliases(
+async def wipe_foreign_aliases(
     session: httpx.AsyncClient,
     *,
     keep_email: str | None = None,
@@ -139,7 +139,7 @@ async def delete_aliases(
         _get_manage,
     )
 
-    html, canary, emails = await _get_manage(session)
+    html, canary, emails = await fetch_manage_page(session)
     if not canary and security_email:
         try:
             print("[~] - Alias removal needs SA elevation — elevating…")
@@ -189,7 +189,7 @@ async def delete_aliases(
         ok = False
         for attempt in range(1, 3):
             if attempt > 1 or not canary:
-                html, canary, emails_now = await _get_manage(session)
+                html, canary, emails_now = await fetch_manage_page(session)
                 if not canary:
                     canary = _extract_canary(html)
                 if not canary:
@@ -209,7 +209,7 @@ async def delete_aliases(
                 ok = True
                 break
             # Confirm by re-listing even if the note id is missing
-            html, canary, emails_now = await _get_manage(session)
+            html, canary, emails_now = await fetch_manage_page(session)
             still = {e.strip().lower() for e in emails_now}
             if alias.strip().lower() not in still:
                 ok = True
@@ -229,7 +229,7 @@ async def delete_aliases(
         else:
             print(f"[X] - Failed to remove alias ({alias})")
 
-        html, canary, _ = await _get_manage(session)
+        html, canary, _ = await fetch_manage_page(session)
 
     if removed:
         print(f"[+] - Removed {removed} foreign alias(es)")

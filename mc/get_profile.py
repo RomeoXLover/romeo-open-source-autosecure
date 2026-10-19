@@ -35,7 +35,7 @@ async def _get_profile_once(ssid: str) -> dict | None:
         return None
 
 
-async def get_profile(ssid: str) -> dict | None:
+async def fetch_profile(ssid: str) -> dict | None:
     return await with_retries(
         "get_profile",
         lambda: _get_profile_once(ssid),

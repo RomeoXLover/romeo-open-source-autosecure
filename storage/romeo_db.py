@@ -288,7 +288,7 @@ class RomeoDB:
         self.conn.commit()
 
     # Secured Accounts
-    def add_secured_account(self, account_id: str, account: dict) -> None:
+    def store_locked(self, account_id: str, account: dict) -> None:
         ms = account["microsoft"]
         mc = account["minecraft"]
         subs = ms["subscriptions"]

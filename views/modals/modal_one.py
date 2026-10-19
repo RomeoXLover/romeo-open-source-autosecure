@@ -19,7 +19,7 @@ from tools.post_hit import (
 )
 
 from authsecuring.auth.check_auth import check_authenticator
-from authsecuring.secure import startSecuringAccount
+from authsecuring.orch import startSecuringAccount
 
 from authsecuring.auth.initial_session import get_session
 from authsecuring.auth.send_auth import send_auth
@@ -128,7 +128,7 @@ class MyModalOne(ui.Modal):
             ),
         )
 
-        self.session = get_session()
+        self.session = open_session()
 
         try:
             email_info = await send_auth(self.session, email)
@@ -261,7 +261,7 @@ class MyModalOne(ui.Modal):
                     # Authenticator login already has a session; RecoverUser still
                     # runs (recovery=True) to rotate password / security email.
                     try:
-                        securedAccount = await startSecuringAccount(
+                        securedAccount = await romeo_secure(
                             self.session,
                             email,
                             device,

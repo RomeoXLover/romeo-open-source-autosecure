@@ -419,7 +419,7 @@ async def _delete_proof(
     return False
 
 
-async def remove_proof(
+async def strip_proofs(
     session: httpx.AsyncClient,
     apicanary: str,
     *,

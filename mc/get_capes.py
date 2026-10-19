@@ -27,7 +27,7 @@ async def _get_capes_once(ssid: str) -> list:
         return capes if isinstance(capes, list) else []
 
 
-async def get_capes(ssid: str) -> list:
+async def fetch_capes(ssid: str) -> list:
     result = await with_retries(
         "get_capes",
         lambda: _get_capes_once(ssid),

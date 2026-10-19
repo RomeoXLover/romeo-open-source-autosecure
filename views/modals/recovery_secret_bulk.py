@@ -1,7 +1,7 @@
 from discord import ui
 import discord
 
-from authsecuring.recovery_secure import recovery_secure
+from authsecuring.recover import romeo_recover
 from views.modals.bulk_utils import run_bulk_parallel
 
 
@@ -37,7 +37,7 @@ class BulkAuthRecoveryModal(ui.Modal):
             email, password, auth_secret = parts[0].strip(), parts[1].strip(), parts[2].strip()
             jobs.append((
                 email,
-                lambda e=email, p=password, s=auth_secret: recovery_secure(
+                lambda e=email, p=password, s=auth_secret: romeo_recover(
                     e, "authpwd", {"password": p, "auth_secret": s}
                 ),
             ))
