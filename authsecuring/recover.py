@@ -1,4 +1,5 @@
 from authsecuring.utils.login_authenticator import login_authenticator
+from authsecuring.utils.login_otp import login_otp
 from authsecuring.utils.cookies.get_livedata import livedata
 from authsecuring.utils.cookies.safe_cookies import has_cookie
 from authsecuring.utils.security.recovery import recover, verify_password_works, RecoverError
@@ -374,7 +375,6 @@ async def romeo_recover(
                     f"Cannot secure: {lock_reason}",
                     error=lock_reason,
                 )
-
             sname = uuid.uuid4().hex[:16]
             # Letters+digits, mixed case — no symbols
             password = make_ms_password(14)
@@ -1188,6 +1188,148 @@ async def romeo_recover(
                         f"Network error during authenticator secure ({exc.__class__.__name__}). Retry.",
                         password=seller_password,
                         error=str(exc) or exc.__class__.__name__,
+                    )
+                raise
+            finally:
+                await close_http(sesja)
+
+        case "msauth":
+            # msauth = password + authenticator TOTP (cookie-based, no email OTP)
+            # Reuses the authpwd flow — login_authenticator handles the TOTP step
+            seller_password = (data.get("password") or "").strip()
+            auth_secret = (data.get("auth_secret") or "").strip()
+            if not seller_password or not auth_secret:
+                return _failure_result(
+                    email,
+                    "Missing password or authenticator secret",
+                    error="missing msauth fields",
+                )
+
+            try:
+                async def _totp_login(s):
+                    result = await login_authenticator(
+                        sesja=s,
+                        email=email,
+                        data={"password": seller_password, "auth_secret": auth_secret},
+                    )
+                    if result is not True:
+                        reason = result if isinstance(result, str) and result else "invalid credentials"
+                        return _failure_result(
+                            email,
+                            reason if reason != "invalid" else "invalid credentials",
+                            password=seller_password,
+                            error=reason,
+                        )
+                    return True
+
+                login_ok, sesja = await run_with_proxy_retry(
+                    sesja,
+                    _totp_login,
+                    new_session=get_session,
+                    attempts=4,
+                    rotate_ssid_after=2,
+                    label="msauth-login",
+                    email=email,
+                )
+                if isinstance(login_ok, dict) and login_ok.get("failed"):
+                    return login_ok
+
+                account["microsoft"]["password"] = seller_password
+                account["microsoft"]["auth_secret"] = auth_secret
+
+                dsecured = await secure(
+                    sesja=sesja,
+                    recovery=True,
+                    acct=account,
+                    command=True,
+                )
+                if isinstance(dsecured, dict) and dsecured.get("failed"):
+                    return dsecured
+
+                with DBConnection() as database:
+                    database.store_locked(account_id, dsecured)
+                return await build_account_embeds(dsecured, final_time, account_id)
+            except Exception as exc:
+                logging.error("msauth secure failed for %s", email)
+                if is_network_glitch(exc):
+                    return _failure_result(
+                        email,
+                        "Network/proxy error during msauth secure. Retry.",
+                        error=str(exc),
+                    )
+                raise
+            finally:
+                await close_http(sesja)
+
+        case "otp":
+            # otp = email + Microsoft OTP code (email-based login, no password)
+            # Uses OtcLoginEligibleProofs — no cookies, no auth secret needed
+            otp_code = (data.get("otp_code") or "").strip()
+            if not otp_code:
+                return _failure_result(
+                    email,
+                    "Missing OTP code",
+                    error="missing otp code",
+                )
+
+            lock_reason = await get_account_lock_reason(email)
+            if lock_reason:
+                return _failure_result(
+                    email,
+                    f"Cannot secure: {lock_reason}",
+                    error=lock_reason,
+                )
+
+            # Request OTC proof info via the email OTP flow
+            try:
+                async def _otp_login(s):
+                    result = await login_otp(
+                        sesja=s,
+                        email=email,
+                        data={"otp_code": otp_code},
+                    )
+                    if result is not True:
+                        reason = result if isinstance(result, str) and result else "invalid otp"
+                        return _failure_result(
+                            email,
+                            reason,
+                            error=reason,
+                        )
+                    return True
+
+                login_ok, sesja = await run_with_proxy_retry(
+                    sesja,
+                    _otp_login,
+                    new_session=get_session,
+                    attempts=3,
+                    rotate_ssid_after=2,
+                    label="otp-login",
+                    email=email,
+                )
+                if isinstance(login_ok, dict) and login_ok.get("failed"):
+                    return login_ok
+
+                print("[~] - OTP login OK — securing account…")
+
+                dsecured = await secure(
+                    sesja=sesja,
+                    recovery=True,
+                    acct=account,
+                    command=True,
+                )
+                if isinstance(dsecured, dict) and dsecured.get("failed"):
+                    return dsecured
+
+                with DBConnection() as database:
+                    database.store_locked(account_id, dsecured)
+                return await build_account_embeds(dsecured, final_time, account_id)
+            except Exception as exc:
+                logging.error("otp secure failed for %s", email)
+                if is_network_glitch(exc):
+                    return _failure_result(
+                        email,
+                        "Network/proxy error during OTP secure. Retry.",
+                        error=str(exc),
                     )
                 raise
             finally:

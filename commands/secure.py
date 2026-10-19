@@ -2,6 +2,8 @@ from views.modals.recovery_secret_bulk import BulkAuthRecoveryModal
 from views.modals.recovery_code_bulk import BulkRecoveryCodeModal
 from views.modals.recovery_secret import recoveryAuthModal
 from views.modals.recovery_code import recoveryCodeModal
+from views.modals.otp_secure import OtpSecureModal
+from views.modals.otp_bulk import OtpBulkModal
 from discord.ext import commands
 import discord
 import json
@@ -15,23 +17,39 @@ class Dropdown(discord.ui.Select):
             discord.SelectOption(
                 label="Recovery Code",
                 description="Uses email + recovery code",
-                value="rcvcode"
+                value="rcvcode",
+                emoji="📜",
             ),
             discord.SelectOption(
                 label="Recovery Code Bulk",
-                description="Uses email + recovery code",
-                value="bulk_rcvcode"
+                description="Bulk — email + recovery code",
+                value="bulk_rcvcode",
+                emoji="📜",
             ),
             discord.SelectOption(
                 label="Password + Secret",
-                description="Uses auth secret and password",
-                value="pwdsecret"
+                description="Uses auth secret and password (msauth)",
+                value="pwdsecret",
+                emoji="🔑",
             ),
             discord.SelectOption(
                 label="Password + Secret Bulk",
-                description="Bulk option for password + secret",
-                value="bulk_pwdsecret"
-            )
+                description="Bulk — password + secret (msauth)",
+                value="bulk_pwdsecret",
+                emoji="🔑",
+            ),
+            discord.SelectOption(
+                label="MS Auth OTP",
+                description="Uses email + OTP code (no cookies)",
+                value="otp",
+                emoji="📧",
+            ),
+            discord.SelectOption(
+                label="MS Auth OTP Bulk",
+                description="Bulk — email + OTP code",
+                value="bulk_otp",
+                emoji="📧",
+            ),
         ]
         super().__init__(
             placeholder="Select Securing Method",
@@ -52,6 +70,10 @@ class Dropdown(discord.ui.Select):
                 modal = recoveryAuthModal()
             case "bulk_pwdsecret":
                 modal = BulkAuthRecoveryModal()
+            case "otp":
+                modal = OtpSecureModal()
+            case "bulk_otp":
+                modal = OtpBulkModal()
             
         await interaction.response.send_modal(modal)
 
@@ -68,22 +90,15 @@ class secure(commands.Cog):
     
        
         embed = discord.Embed(
-            title = "Select Securing Method",
-            description = """
-            Choose how you want to authenticate:
-           
-            **Recovery Code**
-            Use your email and recovery code
-
-            **Recovery Code Bulk**
-            Secures multiple accounts via recobery code
-
-            **Password + Secret (Needs 2FA)**
-            Use your email, password and authenticator secret
-
-            **Password + Secret Bulk**
-            Secure multiple accounts via pwd and secret
-            """
+            title="🔐 Select Securing Method",
+            description="Choose how you want to authenticate:\n\n"
+            "📜 **Recovery Code** — email + recovery code\n"
+            "📜 **Recovery Code Bulk** — multi-account via email + recovery code\n"
+            "🔑 **Password + Secret** — email + password + authenticator secret (msauth, cookie-based)\n"
+            "🔑 **Password + Secret Bulk** — multi-account via password + secret\n"
+            "📧 **MS Auth OTP** — email + Microsoft OTP code (no cookies needed)\n"
+            "📧 **MS Auth OTP Bulk** — multi-account via email + OTP codes",
+            color=0x5865F2,
         )
 
         view = discord.ui.View()
