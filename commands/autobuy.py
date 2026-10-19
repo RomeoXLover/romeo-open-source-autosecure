@@ -11,7 +11,7 @@ from authsecuring.holdcheck import process_due_hold_checks
 
 bot_config = json.load(open("config/bot.json", "r"))
 name = bot_config["enabled_commands"]["aliases"]["autobuy"]
-logger = logging.getLogger("bot")
+logger = logging.getLogger("romeo")
 
 # 5 hours 50 minutes
 _DEFAULT_LOCK_SECOND_HOURS = 5.0 + 50.0 / 60.0

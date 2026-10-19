@@ -9,7 +9,7 @@ from storage.romeo_db import RomeoDB as DBConnection
 from store.ltc_wallet import is_valid_ltc_address
 from authsecuring.recover import romeo_recover
 
-logger = logging.getLogger("bot")
+logger = logging.getLogger("romeo")
 
 
 def _autobuy_cfg() -> dict:

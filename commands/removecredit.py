@@ -11,7 +11,7 @@ from storage.romeo_db import RomeoDB as DBConnection
 
 bot_config = json.load(open("config/bot.json", "r"))
 name = bot_config["enabled_commands"]["aliases"]["removecredit"]
-logger = logging.getLogger("bot")
+logger = logging.getLogger("romeo")
 
 
 class RemoveCredit(commands.Cog):

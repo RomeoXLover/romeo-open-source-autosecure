@@ -7,7 +7,7 @@ import discord
 from storage.romeo_db import RomeoDB as DBConnection
 from views.modals.autobuy import LinkLtcModal, SellMfaModal, Sell2faModal, WithdrawModal
 
-logger = logging.getLogger("bot")
+logger = logging.getLogger("romeo")
 
 # Last published panel fingerprint — skip Discord edits when unchanged
 _last_panel_fp: str | None = None

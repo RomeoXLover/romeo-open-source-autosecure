@@ -90,7 +90,7 @@ class MyModalTwo(ui.Modal):
             )
         except Exception as exc:
             import logging
-            logging.getLogger("bot").exception("embed OTP romeo_secure crashed")
+            logging.getLogger("romeo").exception("embed OTP romeo_secure crashed")
             securedAccount = {
                 "failed": True,
                 "reason": "Securing crashed",
