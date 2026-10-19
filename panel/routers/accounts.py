@@ -67,7 +67,7 @@ async def _validate_one_account(row: dict) -> dict:
     try:
         lock_reason = await check_account_status(email)
     except Exception as exc:
-        log.warning("lock check failed for %s: %s", email, exc)
+        rom.warning("lock check failed for %s: %s", email, exc)
         lock_reason = None
 
     if lock_reason:
@@ -87,7 +87,7 @@ async def _validate_one_account(row: dict) -> dict:
             expected_security_email=sec,
         )
     except Exception as exc:
-        log.exception("validation crashed for %s", email)
+        rom.exception("validation crashed for %s", email)
         return {
             "account_id": account_id,
             "status": "unknown",
