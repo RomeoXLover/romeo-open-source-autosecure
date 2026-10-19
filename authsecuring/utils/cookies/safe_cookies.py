@@ -8,18 +8,18 @@ import httpx
 CONFLICT_NAMES = frozenset({"MSCC", "MSPOK", "PPLState", "uaid", "MSPRequ", "OParams"})
 
 
-def iter_cookies(sesja: httpx.AsyncClient):
+def iter_cookie_jar(sesja: httpx.AsyncClient):
     return list(sesja.cookies.jar)
 
 
 def has_cookie(sesja: httpx.AsyncClient, name: str) -> bool:
-    return any(c.name == name for c in iter_cookies(sesja))
+    return any(c.name == name for c in iter_cookie_jar(sesja))
 
 
 def get_cookie(sesja: httpx.AsyncClient, name: str) -> str | None:
     """Return the most recently set cookie value for name (last wins)."""
     value = None
-    for c in iter_cookies(sesja):
+    for c in iter_cookie_jar(sesja):
         if c.name == name:
             value = c.value
     return value
@@ -28,7 +28,7 @@ def get_cookie(sesja: httpx.AsyncClient, name: str) -> str | None:
 def cookies_as_dict(sesja: httpx.AsyncClient) -> dict[str, str]:
     """Flatten cookies to name->value without raising CookieConflict."""
     out: dict[str, str] = {}
-    for c in iter_cookies(sesja):
+    for c in iter_cookie_jar(sesja):
         out[c.name] = c.value
     return out
 

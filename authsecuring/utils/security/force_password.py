@@ -225,7 +225,7 @@ async def verify_password_stuck(
     marked = "UNVERIFIED" in raw
 
     email = _login_email(ms)
-    sec = str(ms.get("sec_mail") or "").strip()
+    sec = str(ms.get("security_email") or "").strip()
     rc = str(ms.get("rec_code") or "").strip()
 
     if not clean or not email:

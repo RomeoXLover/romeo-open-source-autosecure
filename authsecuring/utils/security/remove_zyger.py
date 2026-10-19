@@ -1,7 +1,7 @@
 import logging
 import httpx
 
-async def remove_zyger(sesja: httpx.AsyncClient, canary: str):
+async def strip_passkeys(sesja: httpx.AsyncClient, canary: str):
     # Removes login through pass keys aka Zyger / Windows Hello
     
     remove = await sesja.post(
