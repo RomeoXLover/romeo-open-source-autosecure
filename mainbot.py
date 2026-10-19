@@ -85,18 +85,23 @@ class RomeoClient(commands.Bot):
 
 
 async def _mail_watcher(bot: RomeoClient, config: dict):
-    """Background task: poll IMAP for OTPs, push to bot.otp_buffer."""
-    from extracted.mail.handler import poll_imap, detect_otp, load_token_config
+    """Background task: detect OTPs via SMTP or Cloudflare Worker, push to bot.otp_buffer."""
+    from extracted.mail.handler import start_mail_handler
 
-    async def on_otp(code: str, subject: str, otp_type: str):
+    async def on_otp(code: str, subject: str, hit: dict):
         await bot.otp_buffer.put({
             "code": code,
             "subject": subject,
-            "type": otp_type,
+            "type": hit.get("type", "unknown"),
+            "source": hit.get("source", "unknown"),
             "ts": __import__("time").time(),
         })
 
-    await poll_imap(config, on_otp)
+    task = await start_mail_handler(config, on_otp)
+    if task:
+        rom.info("mail handler running")
+    else:
+        rom.warning("mail handler not configured")
 
 
 async def main():
