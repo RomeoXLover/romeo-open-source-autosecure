@@ -27,7 +27,7 @@ class requestOTP(commands.Cog):
         if "OtcLoginEligibleProofs" in response["Credentials"]:
             await ctx.followup.send(
                 embed=discord.Embed(
-                    description=f"Successfully sent OTP to `{["Credentials"]["OtcLoginEligibleProofs"][0]['display']}`",
+                    description=f"Successfully sent OTP to `{response["Credentials"]["OtcLoginEligibleProofs"][0]["display"]}`",
                     color=0x3B89FF
                 ),
                 ephemeral=True

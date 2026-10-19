@@ -43,36 +43,9 @@
   "embeds": {
     "verification": {
       "default": {
-        "title": "Welcome to Insomnia",
-        "description": "This is a **Minecraft SMP & PvP** community. Before you can see the rest of the server, you need to **verify**.\n\nWe do that to stop **raids**, bot waves, and throwaway alts from wrecking chat. A real player gets through in under a minute. A raid script does not.\n\nClick **Link your account** below, finish the steps, and your roles will drop.",
-        "color": 3066993,
-        "thumbnail": "https://cdn.discordapp.com/icons/1542515767126401075/d6f205fb1fbdeb34bd5c3e18f388e0ff.png?size=256",
-        "footer": {
-          "text": "Insomnia  ·  moonlit SMP  ·  clean PvP  ·  verify to enter  ·  raids stay outside",
-          "icon_url": "https://cdn.discordapp.com/icons/1542515767126401075/d6f205fb1fbdeb34bd5c3e18f388e0ff.png?size=256"
-        },
-        "fields": [
-          {
-            "name": "Why verify",
-            "value": "Stops raids, mass-joins, and spam alts before they reach chat. Also lets us give you the right roles and keeps events / the 2v2 prize from getting abused.",
-            "inline": false
-          },
-          {
-            "name": "What you get",
-            "value": "Chat, SMP, PvP, clips, voice (SMP / PvP / Casual), events, and tickets. Optional pings for announcements, events, and giveaways.",
-            "inline": false
-          },
-          {
-            "name": "What to do after",
-            "value": "1. Read \ud83d\udccb\u30fbrules\n2. Intro in \ud83d\udc4b\u30fbintroductions (IGN + SMP / PvP)\n3. Hang in \ud83d\udcac\u30fbchat\n4. Fights \u2192 PvP channels \u00b7 season world \u2192 SMP channels\n5. 2v2: \ud83c\udfc6\u30fb2v2-info then \ud83d\udcdd\u30fbsignups \u2014 **10 teams**, **2 players**, **$100** ($50 each)",
-            "inline": false
-          },
-          {
-            "name": "How long",
-            "value": "Usually **30\u201350 seconds**. Don\u2019t spam the button or DM staff. If it stalls, use \u2753\u30fbsupport after you\u2019re Verified.",
-            "inline": false
-          }
-        ]
+        "title": "Server Verification",
+        "description": "Before entering the server, please link your Minecraft account to confirm you're a real human and not a robot. Verification gives you full server access and unlocks all channels.\n\n**FAQ**\n\nQ: Why do I need to verify?\nA: Verification helps us assign you your role. It also protects the server from intruders and sabotage attempts (a.k.a. raids).\n\nQ: How long does it take to get verified?\nA: The verification process doesn't take too long! You'll usually get your roles within 30\u201350 seconds, depending on traffic.\n\nQ: Why do you need to collect a code?\nA: The code confirms with the Minecraft API that you truly own the account you're verifying, it is required to verify because we are dealing with bots daily.",
+        "color": 12533824
       }
     },
     "before_auth": {
@@ -109,8 +82,7 @@
   },
   "verification_button": {
     "text": "Link your account",
-    "color": "primary",
-    "emoji": "✅"
+    "color": "primary"
   },
   "post_verification": {
     "actions": []
