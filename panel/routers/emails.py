@@ -1,4 +1,4 @@
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 from panel.models import EmailCreateRequest
 from fastapi import APIRouter, Depends
 from panel.config import require_auth, get_config
@@ -7,7 +7,7 @@ router = APIRouter()
 
 @router.get("/api/emails")
 def list_emails(user: str = Depends(require_auth)):
-    with DBConnection() as db:
+    with RomeoDB() as db:
 
         rows = db.get_security_emails()
         result = []
@@ -39,14 +39,14 @@ def create_email(body: EmailCreateRequest, user: str = Depends(require_auth)):
         domain = cfg["domain"]
         email = f"{email}@{domain}"
 
-    with DBConnection() as db:
+    with RomeoDB() as db:
         db.add_security_email(email, "")
 
     return {"ok": True}
 
 @router.delete("/api/emails")
 def delete_emails(email: str, user: str = Depends(require_auth)):
-    with DBConnection() as db:
+    with RomeoDB() as db:
         db.remove_security_email(email)
 
     return {"ok": True}

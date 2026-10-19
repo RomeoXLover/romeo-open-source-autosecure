@@ -1,5 +1,5 @@
-from mc.get_hypixel import get_hypixel_stats
-from mc.get_donut import get_donut_stats
+from mc.get_hypixel import fetch_hypixel
+from mc.get_donut import fetch_donut
 from tools.simplify import simplify
 
 from storage.romeo_db import RomeoDB as DBConnection
@@ -21,8 +21,8 @@ class ButtonOptions(ui.View):
 
     async def check_stats(self):
         if not self.hstats:
-            self.hstats = await get_hypixel_stats(self.username)
-            self.dstats = await get_donut_stats(self.username)
+            self.hstats = await fetch_hypixel(self.username)
+            self.dstats = await fetch_donut(self.username)
 
     @discord.ui.button(label="🛏️ Bedwars", style=discord.ButtonStyle.grey, custom_id="persistent:button_bedwars", row=1)
     async def bedwarsButton(self, button: discord.ui.Button, interaction: discord.Interaction):

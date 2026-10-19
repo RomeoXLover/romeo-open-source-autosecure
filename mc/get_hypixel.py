@@ -4,7 +4,7 @@ import json
 config = json.load(open("config/config.json", "r"))
 skytools_key = config["tokens"]["skytools_key"]
 
-async def get_hypixel_stats(username: str) -> dict:
+async def fetch_hypixel(username: str) -> dict:
 
     result = {
         "exists": bool(skytools_key),

@@ -5,7 +5,7 @@ import httpx
 from mc.retry import TransientMCError, with_retries
 
 
-async def _get_username_info_once(ssid: str):
+async def _fetch_namechange_once(ssid: str):
     async with httpx.AsyncClient(timeout=30.0) as session:
         response = await session.get(
             url="https://api.minecraftservices.com/minecraft/profile/namechange",
@@ -34,10 +34,10 @@ async def _get_username_info_once(ssid: str):
         return (finalDate - todayDate).days
 
 
-async def get_username_info(ssid: str):
+async def fetch_namechange(ssid: str):
     return await with_retries(
-        "get_username_info",
-        lambda: _get_username_info_once(ssid),
+        "fetch_namechange",
+        lambda: _fetch_namechange_once(ssid),
         attempts=3,
         base_delay=1.5,
         retry_on_none=False,

@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from panel.config import require_auth
 from panel.models import RecoveryRequest, PasswordRequest, BulkRequest
-from securing.recovery_secure import recovery_secure
+from authsecuring.romeo_recover import romeo_recover
 
 router = APIRouter()
 
 @router.post("/api/secure/recovery")
 async def secure_recovery(body: RecoveryRequest, user: str = Depends(require_auth)):
-    from securing.recovery_secure import recovery_secure
+    from authsecuring.romeo_recover import romeo_recover
     try:
 
         result = await romeo_recover(body.email, "rcode", {"recovery_code": body.recovery_code})

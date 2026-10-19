@@ -2,7 +2,7 @@ from argon2.exceptions import VerifyMismatchError, InvalidHashError
 from argon2 import PasswordHasher
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 
 from panel.models import ShareLinkRequest
 from panel.config import require_auth
@@ -28,7 +28,7 @@ def verify_lpwd(stored: str, candidate: str) -> bool:
 
 @router.post("/api/accounts/{account_id}/share")
 def create_share_link(account_id: str, body: ShareLinkRequest, user: str = Depends(require_auth)):
-    with DBConnection() as db:
+    with RomeoDB() as db:
         if not db.is_valid_account_id(account_id):
             raise HTTPException(404, detail="Account not found.")
         
@@ -45,7 +45,7 @@ def create_share_link(account_id: str, body: ShareLinkRequest, user: str = Depen
 
 @router.get("/api/accounts/{account_id}/links")
 def list_share_links(account_id: str, user: str = Depends(require_auth)):
-    with DBConnection() as db:
+    with RomeoDB() as db:
         if not db.is_valid_account_id(account_id):
             raise HTTPException(404, detail="Account not found.")
         
@@ -53,7 +53,7 @@ def list_share_links(account_id: str, user: str = Depends(require_auth)):
 
 @router.delete("/api/share/{link_id}")
 def delete_share_link(link_id: str, user: str = Depends(require_auth)):
-    with DBConnection() as db:
+    with RomeoDB() as db:
         link = db.get_share_link(link_id)
         if not link:
             raise HTTPException(404, detail="Link not found.")
@@ -66,7 +66,7 @@ def delete_share_link(link_id: str, user: str = Depends(require_auth)):
 @router.post("/api/share/{link_id}/verify")
 @limiter.limit("60/minute")
 def verify_share_link(request: Request, link_id: str, body: ShareLinkRequest):
-    with DBConnection() as db:
+    with RomeoDB() as db:
         link = db.get_share_link(link_id)
         if not link:
             raise HTTPException(404, detail="Link not found.")

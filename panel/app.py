@@ -3,12 +3,12 @@ from panel.limiter import limiter
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
-from database.database import DBConnection
+from storage.romeo_db import RomeoDB as DBConnection
 import os
 
 app = FastAPI()
 
-with DBConnection() as _db:
+with RomeoDB() as _db:
     _db.setup_tables()
 
 app.state.limiter = limiter

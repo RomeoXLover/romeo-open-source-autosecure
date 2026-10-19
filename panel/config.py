@@ -1,7 +1,7 @@
 import hmac, json, os, secrets
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, Request
-from shared.gen_totp import totp
+from tools.gen_totp import totp
 import jwt
 
 ALGO = "HS256"

@@ -1,5 +1,5 @@
-from mc.get_hypixel import get_hypixel_stats
-from mc.get_donut import donut_money, get_donut_stats
+from mc.get_hypixel import fetch_hypixel
+from mc.get_donut import fetch_donut_money, fetch_donut
 from tools.simplify import simplify
 
 from urllib.parse import quote
@@ -278,13 +278,13 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
         subscriptions_embed.description = "```No subscriptions.```"
 
     try:
-        hstats = await get_hypixel_stats(name)
+        hstats = await fetch_hypixel(name)
     except Exception:
         hstats = {}
     if not isinstance(hstats, dict):
         hstats = {}
     try:
-        dstats = await get_donut_stats(name)
+        dstats = await fetch_donut(name)
     except Exception:
         dstats = "Failed"
 
@@ -294,7 +294,7 @@ async def build_account_embeds(account: dict, elapsed: float = 0, account_id: st
     stats_embed.add_field(name="Gifted", value=f'{hstats.get("hypixel", {}).get("gifted", 0)}', inline=True)
     stats_embed.add_field(name="SB NW", value=f'${simplify(hstats.get("skyblock", {}).get("networth", 0))}', inline=True)
     stats_embed.add_field(name="SB LVL", value=f'{simplify(hstats.get("skyblock", {}).get("level", 0))}', inline=True)
-    stats_embed.add_field(name="Donut NW", value=f'{simplify(donut_money(dstats))}', inline=True)
+    stats_embed.add_field(name="Donut NW", value=f'{simplify(fetch_donut_money(dstats))}', inline=True)
 
     xbox_embed = Embed(color=0x107C10, title="Xbox Info")
     xbox_embed.add_field(name="Gamertag", value=f"```{mc.get('gamertag', 'Not Found')}```", inline=False)

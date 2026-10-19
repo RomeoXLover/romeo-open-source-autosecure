@@ -3,8 +3,8 @@ from discord.ext import commands
 from datetime import datetime
 import discord
 
-from mc.get_donut import get_donut_stats, parse_donut_result
-from mc.get_hypixel import get_hypixel_stats
+from mc.get_donut import fetch_donut, parse_donut
+from mc.get_hypixel import fetch_hypixel
 import json
 
 bot_config = json.load(open("config/bot.json", "r"))
@@ -24,12 +24,12 @@ class Stats(commands.Cog):
 
         await ctx.defer(ephemeral=True)
 
-        donut_stats = await get_donut_stats(username)
+        donut_stats = await fetch_donut(username)
         if not donut_stats:
             await ctx.followup.send("Set up your donut API key first!", ephemeral=True)
             return
 
-        result = parse_donut_result(donut_stats)
+        result = parse_donut(donut_stats)
         if not result:
             await ctx.followup.send("That player doesn't have stats!", ephemeral=True)
             return
@@ -66,7 +66,7 @@ class Stats(commands.Cog):
 
         await ctx.defer(ephemeral=True)
 
-        hypixel_stats = await get_hypixel_stats(username)
+        hypixel_stats = await fetch_hypixel(username)
         if not hypixel_stats["exists"]:
             await ctx.followup.send("Make sure you setup your Skytools key first!", ephemeral=True)
             return

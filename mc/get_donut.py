@@ -28,7 +28,7 @@ def _lookup_name(username: str) -> str:
     return text.split()[0] if text else ""
 
 
-def parse_donut_result(stats) -> dict | None:
+def parse_donut(stats) -> dict | None:
     """Normalize DonutSMP /v1/stats into a result dict, or None on errors."""
     if not stats or stats is False or stats == "Failed":
         return None
@@ -44,14 +44,14 @@ def parse_donut_result(stats) -> dict | None:
     return None
 
 
-def donut_money(stats) -> object:
-    result = parse_donut_result(stats)
+def fetch_donut_money(stats) -> object:
+    result = parse_donut(stats)
     if not result:
         return 0
     return result.get("money") or 0
 
 
-async def get_donut_stats(username: str):
+async def fetch_donut(username: str):
     donut_key = _donut_key()
     if not donut_key:
         return False
@@ -78,7 +78,7 @@ async def get_donut_stats(username: str):
 
         print(stats)
 
-        result = parse_donut_result(stats)
+        result = parse_donut(stats)
         if response.status_code >= 500 or result is None:
             return "Failed"
 
