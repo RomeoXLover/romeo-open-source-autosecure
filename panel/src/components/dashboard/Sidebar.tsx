@@ -43,8 +43,8 @@ export function Sidebar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void })
         <span className="grid h-8 w-8 place-items-center rounded-md bg-gradient-to-br from-[--primary] to-[--accent] text-primary-foreground">
           <Lock className="h-4 w-4" />
         </span>
-        <span className="font-display text-lg font-bold tracking-tight">
-          Autosecure
+          <span className="font-display text-lg font-bold tracking-tight text-[--accent]">
+          RomeoMSA
         </span>
       </div>
 
