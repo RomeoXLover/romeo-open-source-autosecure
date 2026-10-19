@@ -11,7 +11,7 @@ from pathlib import Path
 
 import httpx
 
-logger = logging.getLogger("bot")
+logger = logging.getLogger("romeo")
 
 CONFIG_PATH = Path("config/config.json")
 WALLET_DB = Path("database/ltc_wallet.db")
