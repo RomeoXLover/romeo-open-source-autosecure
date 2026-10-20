@@ -57,7 +57,7 @@ def _is_msal_bridge(html: str) -> bool:
     )
 
 
-async def polish_host(sesja: httpx.AsyncClient, post_data: dict) -> str:
+async def polish_session(sesja: httpx.AsyncClient, post_data: dict) -> str:
     # Persist Microsoft sesja (WLSSC / AMCSecAuthJWT) for account.microsoft.com APIs.
     # Never block forever: MSAL JS bridge SSO GETs hang with timeout=None.
     from authsecuring.utils.cookies.ensure_amc_jwt import ensure_amc_jwt
@@ -182,3 +182,6 @@ async def polish_host(sesja: httpx.AsyncClient, post_data: dict) -> str:
         await ensure_amc_jwt(sesja)
 
     return auth.text
+
+
+polish_host = polish_session

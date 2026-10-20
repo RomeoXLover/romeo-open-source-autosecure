@@ -8,7 +8,7 @@ from authsecuring.utils.security.remove_devices import purge_devices
 from authsecuring.utils.security.delete_aliases import wipe_foreign_aliases
 from authsecuring.utils.security.remove_proof import strip_proofs
 from authsecuring.utils.security.remove_fed_cred import wipe_fed_creds
-from authsecuring.utils.security.leave_family import leave_family_group_group
+from authsecuring.utils.security.leave_family import leave_family_group
 from authsecuring.utils.security.remove_zyger import strip_passkeys
 from authsecuring.utils.security.remove_2fa import drop_2fa
 from authsecuring.utils.security.recovery import recover

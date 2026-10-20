@@ -12,14 +12,13 @@ from authsecuring.auth.handle_redirects import handle_redirects, get_data
 from authsecuring.auth.polish_host import polish_host
 
 from authsecuring.embed_builder import build_account_embeds, build_failure_embed
-from authsecuring.auth.initial_session import get_session
+from authsecuring.auth.initial_session import open_session as get_session
 from authsecuring.auth.account_status import get_account_lock_reason
 from authsecuring.utils.secure import lock_account
-from authsecuring.filters import rejection_reason
+from authsecuring.filters import rejection_cause as rejection_reason
 from authsecuring.utils.proxy import (
-    close_session,
-    format_exception_reason,
-    is_proxy_transport_error,
+    close_http as close_session,
+    is_network_glitch,
     run_with_proxy_retry,
 )
 

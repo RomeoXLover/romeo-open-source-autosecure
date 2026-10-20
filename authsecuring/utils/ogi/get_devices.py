@@ -2,7 +2,7 @@ import logging
 
 import httpx
 
-from authsecuring.utils.ogi.amc_headers import amc_api_headers
+from authsecuring.utils.ogi.amc_headers import build_amc_headers
 
 rom = logging.getLogger(__name__)
 

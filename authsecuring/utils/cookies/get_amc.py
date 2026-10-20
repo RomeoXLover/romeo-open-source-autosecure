@@ -4,7 +4,7 @@ import re
 
 import httpx
 
-from authsecuring.utils.proxy import format_exception_reason, is_proxy_transport_error
+from authsecuring.utils.proxy import proxy_error_reason, is_network_glitch
 
 _AMC_TIMEOUT = httpx.Timeout(25.0, connect=10.0)
 

