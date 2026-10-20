@@ -1,0 +1,26 @@
+{
+  "minecraft": {
+    "server_host": "donutsmp.net",
+    "server_port": 25565,
+    "auth_method": "microsoft",
+    "username": "",
+    "session_token_env": "MINECRAFT_SESSION_TOKEN",
+    "proxy_enabled": false,
+    "proxy_url": "",
+    "reconnect": true
+  },
+  "movement": {
+    "enabled": false,
+    "forward_seconds": 3
+  },
+  "anti_afk": {
+    "enabled": false,
+    "interval_seconds": 60
+  },
+  "api": {
+    "host": "127.0.0.1",
+    "port": 8000,
+    "api_key_env": "STATS_API_KEY",
+    "request_timeout_seconds": 30
+  }
+}

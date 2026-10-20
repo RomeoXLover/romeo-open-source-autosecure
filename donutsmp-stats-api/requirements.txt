@@ -1,0 +1,7 @@
+FastAPI>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-dotenv>=1.0.0
+pyCraft>=0.7.0
+mcstatus>=14.2.0
